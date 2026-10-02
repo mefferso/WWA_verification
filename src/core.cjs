@@ -110,6 +110,7 @@ function newStationAggregate_(event, meta, cfg) {
 }
 
 function updateStationAggregate_(a, when, ms, tempF, wc, hi, rhPct, dewF, windMph, gustMph, flags, cfg) {
+  hi = validHeatIndexF_(hi);
   a.OBS_COUNT++;
   a._times.push(ms);
   a._criteria.push({ ms:ms, temp:flags.tempMet, wc:flags.wcMet, hi:flags.hiMet, rfw:flags.rfwMet });
@@ -157,6 +158,7 @@ function aggregateToRow_(a) {
 }
 
 function evaluateSampleCriteria_(hazard, rules, tempF, wc, hi, rhPct, windMph, gustMph, cfg) {
+  hi = validHeatIndexF_(hi);
   var tempRule = rules.TEMP_F || null;
   var wcRule = rules.WIND_CHILL_F || tempRule || null;
   var hiRule = rules.HEAT_INDEX_F || null;
@@ -367,7 +369,8 @@ function summarizeEventForPayload_(rows,areas) {
   var maxHi=null,maxHiSt='',maxT=null,maxTSt='',minT=null,minTSt='',minWc=null,minWcSt='',lowRh=null,highWind=null;
   rows.forEach(function(r){
     var s=String(r.VERIFY_STATUS||'INDETERMINATE');stationCounts[s]=(stationCounts[s]||0)+1;
-    if (toFinite_(r.MAX_HEAT_INDEX_F)!==null && (maxHi===null||Number(r.MAX_HEAT_INDEX_F)>maxHi)){maxHi=Number(r.MAX_HEAT_INDEX_F);maxHiSt=r.STID;}
+    var validHi=validHeatIndexF_(r.MAX_HEAT_INDEX_F);
+    if (validHi!==null && (maxHi===null||validHi>maxHi)){maxHi=validHi;maxHiSt=r.STID;}
     if (toFinite_(r.MAX_TEMP_F)!==null && (maxT===null||Number(r.MAX_TEMP_F)>maxT)){maxT=Number(r.MAX_TEMP_F);maxTSt=r.STID;}
     if (toFinite_(r.MIN_TEMP_F)!==null && (minT===null||Number(r.MIN_TEMP_F)<minT)){minT=Number(r.MIN_TEMP_F);minTSt=r.STID;}
     if (toFinite_(r.MIN_WINDCHILL_F)!==null && (minWc===null||Number(r.MIN_WINDCHILL_F)<minWc)){minWc=Number(r.MIN_WINDCHILL_F);minWcSt=r.STID;}
@@ -384,16 +387,21 @@ function computeWindChillF_(tempF,windMph) {
   return 35.74+0.6215*tempF-35.75*v16+0.4275*tempF*v16;
 }
 
+function validHeatIndexF_(value) {
+  var n=toFinite_(value);
+  return n!==null && n>0 && n<=128 ? n : null;
+}
+
 function computeHeatIndexF_(tempF,rhPct) {
   tempF=toFinite_(tempF); rhPct=toFinite_(rhPct);
   if (tempF===null||rhPct===null||rhPct<0||rhPct>100) return null;
   var simple=0.5*(tempF+61.0+((tempF-68.0)*1.2)+(rhPct*0.094));
   var preliminary=(simple+tempF)/2.0;
-  if (preliminary<80) return preliminary;
+  if (preliminary<80) return validHeatIndexF_(preliminary);
   var hi=-42.379+2.04901523*tempF+10.14333127*rhPct-0.22475541*tempF*rhPct-0.00683783*tempF*tempF-0.05481717*rhPct*rhPct+0.00122874*tempF*tempF*rhPct+0.00085282*tempF*rhPct*rhPct-0.00000199*tempF*tempF*rhPct*rhPct;
   if (rhPct<13&&tempF>=80&&tempF<=112) hi-=((13-rhPct)/4)*Math.sqrt((17-Math.abs(tempF-95))/17);
   else if (rhPct>85&&tempF>=80&&tempF<=87) hi+=((rhPct-85)/10)*((87-tempF)/5);
-  return hi;
+  return validHeatIndexF_(hi);
 }
 
 function computeDewpointF_(tempF,rhPct) {
@@ -463,4 +471,4 @@ function intervalActive_(startMs,endMs,windows){
 function fmtYmdHm_(d){return d.toISOString().slice(0,16).replace(/[-:T]/g,'');}
 function toIsoMinute_(d){return d.toISOString().slice(0,16)+'Z';}
 
-module.exports={HAZARD_META,STATION_HEADERS,EVENT_HEADERS,EVENT_AREA_HEADERS,EVENT_OBS_HEADERS,RESULT_HEADERS,SAMPLE_HEADERS,AREA_VERIFY_HEADERS,normalizeUgc_,getHazardFromIem_,resolveProductLabel_,newStationAggregate_,updateStationAggregate_,finalizeAggregate_,aggregateToRow_,evaluateSampleCriteria_,getAreaWindowsForStation_,isTimeActiveForStation_,activeWindowDurationMs_,coveragePct_,computeRunStats_,addRuleRow_,lookupRulesForArea_,mergeRuleMaps_,normalizeAreaKey_,evaluateStation_,resultEval_,thresholdSummaryFor_,ruleText_,ruleDurationMinutes_,durationSatisfied_,stationConfidence_,summarizeEventForPayload_,computeWindChillF_,computeHeatIndexF_,computeDewpointF_,classifyStationTier_,networkName_,headersMatch_,rowToObject_,numericizeEventObs_,numericizePayloadRow_,ensureVars_,parseIdSet_,buildUrl_,findObsKey_,compare_,normalizeComparator_,normCounty_,parseDateSafe_,validRange_,toFinite_,minFinite_,maxFinite_,round_,pad2_,isValidDate_,formatMinutesHuman_,intervalActive_,fmtYmdHm_,toIsoMinute_};
+module.exports={HAZARD_META,STATION_HEADERS,EVENT_HEADERS,EVENT_AREA_HEADERS,EVENT_OBS_HEADERS,RESULT_HEADERS,SAMPLE_HEADERS,AREA_VERIFY_HEADERS,normalizeUgc_,getHazardFromIem_,resolveProductLabel_,newStationAggregate_,updateStationAggregate_,finalizeAggregate_,aggregateToRow_,evaluateSampleCriteria_,getAreaWindowsForStation_,isTimeActiveForStation_,activeWindowDurationMs_,coveragePct_,computeRunStats_,addRuleRow_,lookupRulesForArea_,mergeRuleMaps_,normalizeAreaKey_,evaluateStation_,resultEval_,thresholdSummaryFor_,ruleText_,ruleDurationMinutes_,durationSatisfied_,stationConfidence_,summarizeEventForPayload_,computeWindChillF_,validHeatIndexF_,computeHeatIndexF_,computeDewpointF_,classifyStationTier_,networkName_,headersMatch_,rowToObject_,numericizeEventObs_,numericizePayloadRow_,ensureVars_,parseIdSet_,buildUrl_,findObsKey_,compare_,normalizeComparator_,normCounty_,parseDateSafe_,validRange_,toFinite_,minFinite_,maxFinite_,round_,pad2_,isValidDate_,formatMinutesHuman_,intervalActive_,fmtYmdHm_,toIsoMinute_};
