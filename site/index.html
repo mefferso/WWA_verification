@@ -10,7 +10,7 @@
     :root {
       --nav:#172033; --blue:#153e75; --blue2:#1d4ed8; --bg:#f1f5f9; --panel:#ffffff;
       --text:#0f172a; --muted:#64748b; --border:#cbd5e1;
-      --met:#15803d; --not:#b91c1c; --ind:#d97706; --nodata:#64748b;
+      --met:#16a34a; --not:#dc2626; --ind:#f59e0b; --nodata:#94a3b8;
       --shadow:0 4px 16px rgba(15,23,42,.14);
     }
     *{box-sizing:border-box}
@@ -21,18 +21,16 @@
     #tools-menu button{border:1px solid #475569;background:#334155;color:#fff;border-radius:6px;padding:6px 10px;font-size:12px;font-weight:700;cursor:pointer}
     #tools-menu button:hover{background:#475569} #tools-menu button:disabled{opacity:.45;cursor:not-allowed}
     #tools-spacer{flex:1}
-    #data-health{font-size:11px;color:#cbd5e1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:42vw}
 
-    #header{position:fixed;top:44px;left:0;right:0;height:122px;background:linear-gradient(110deg,#173e76,#1e4f91);z-index:1150;color:#fff;box-shadow:var(--shadow);padding:10px 14px;display:grid;grid-template-columns:minmax(330px,1.15fr) minmax(520px,2fr);gap:14px;align-items:center}
+    #header{position:fixed;top:44px;left:0;right:0;height:104px;background:linear-gradient(110deg,#173e76,#1e4f91);z-index:1150;color:#fff;box-shadow:var(--shadow);padding:10px 14px;display:grid;grid-template-columns:minmax(330px,1.15fr) minmax(520px,2fr);gap:14px;align-items:center}
     #header-main{min-width:0}.eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#bfdbfe;font-weight:800;margin-bottom:3px}
     #page-title{margin:0 0 7px;font-size:21px;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     #event-select{width:100%;padding:8px 10px;border-radius:6px;border:1px solid #93c5fd;background:#fff;color:#0f172a;font-weight:650;font-size:12px;outline:none}
-    #event-submeta{margin-top:5px;font-size:11px;color:#dbeafe;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     #summary-strip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
     .summary-card{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);border-radius:8px;padding:8px 9px;min-height:74px;backdrop-filter:blur(3px)}
     .summary-label{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:#dbeafe;font-weight:800}.summary-value{font-size:21px;font-weight:800;margin-top:2px}.summary-sub{font-size:10px;color:#dbeafe;margin-top:2px;line-height:1.25}
 
-    #workspace{position:fixed;top:166px;bottom:128px;left:0;right:0;display:grid;grid-template-columns:340px minmax(0,1fr)}
+    #workspace{position:fixed;top:148px;bottom:128px;left:0;right:0;display:grid;grid-template-columns:340px minmax(0,1fr)}
     #sidebar{background:#f8fafc;border-right:1px solid var(--border);overflow:auto;padding:10px;z-index:700}
     .panel{background:#fff;border:1px solid #dbe3ee;border-radius:9px;margin-bottom:9px;box-shadow:0 1px 3px rgba(15,23,42,.05)}
     .panel-title{display:flex;align-items:center;justify-content:space-between;padding:9px 10px;border-bottom:1px solid #e2e8f0;font-size:12px;font-weight:800}.panel-body{padding:9px 10px}
@@ -41,6 +39,8 @@
     .area-top{display:flex;justify-content:space-between;gap:8px;align-items:center}.area-name{font-size:12px;font-weight:800}.status-pill{font-size:9px;font-weight:900;padding:3px 5px;border-radius:999px;color:#fff;white-space:nowrap}.status-pill.met{background:var(--met)}.status-pill.not_met{background:var(--not)}.status-pill.indeterminate{background:var(--ind)}.status-pill.no_data{background:var(--nodata)}
     .area-meta{font-size:10px;color:var(--muted);margin-top:4px;line-height:1.3}
     #map{width:100%;height:100%}.leaflet-container{background:#dbeafe}.leaflet-control-layers{font-size:11px}
+    .map-legend{background:rgba(255,255,255,.96);border:1px solid #cbd5e1;border-radius:7px;padding:8px 10px;box-shadow:0 2px 8px rgba(15,23,42,.16);font-size:11px;line-height:1.35;color:#334155}
+    .map-legend-title{font-size:11px;font-weight:850;color:#0f172a;margin-bottom:5px}.map-legend-row{display:flex;align-items:center;gap:7px;margin:3px 0}.map-legend-swatch{width:15px;height:15px;border:2px solid;border-radius:3px;flex:0 0 auto}.map-legend-note{margin-top:6px;padding-top:5px;border-top:1px solid #e2e8f0;font-size:9px;color:#64748b;max-width:190px}
     .station-label{background:rgba(15,23,42,.9)!important;color:#fff!important;border:1px solid rgba(255,255,255,.55)!important;border-radius:4px!important;font-size:10px!important;font-weight:800!important;padding:2px 5px!important;box-shadow:0 1px 5px rgba(0,0,0,.3)!important;white-space:nowrap}.station-label:before{display:none!important}
     .popup-title{font-weight:850;font-size:14px;color:#173e76;margin-bottom:6px}.popup-table{border-collapse:collapse;width:100%;font-size:11px}.popup-table td{padding:4px 5px;border-bottom:1px solid #eef2f7;vertical-align:top}.popup-table td:first-child{font-weight:750;color:#475569;white-space:nowrap;width:43%}
 
@@ -50,13 +50,13 @@
     #time-slider{width:100%;margin:3px 0}.criterion-row{display:grid;grid-template-columns:90px minmax(0,1fr) 80px;align-items:center;gap:7px;margin:2px 0;font-size:9px}.criterion-label{font-weight:750;color:#475569}.criterion-strip{height:8px;display:flex;gap:1px;background:#e2e8f0;border-radius:2px;overflow:hidden}.criterion-seg{flex:1;background:#e2e8f0}.criterion-seg.on{background:#2563eb}.criterion-count{text-align:right;color:var(--muted)}
 
     #loadingOverlay{display:none;position:fixed;inset:0;background:rgba(15,23,42,.75);z-index:5000;color:#fff;align-items:center;justify-content:center;flex-direction:column;backdrop-filter:blur(3px)}#loadingOverlay.active{display:flex}.spinner{width:42px;height:42px;border:4px solid rgba(255,255,255,.25);border-top-color:#38bdf8;border-radius:50%;animation:spin .8s linear infinite;margin-bottom:12px}@keyframes spin{to{transform:rotate(360deg)}}#loadingText{font-weight:800}#loadingSubtext{font-size:12px;opacity:.8;margin-top:4px}
-    #toast{display:none;position:fixed;top:176px;right:12px;z-index:3000;background:#fff;border-left:4px solid #d97706;border-radius:7px;padding:9px 12px;box-shadow:var(--shadow);font-size:11px;max-width:430px}#toast.active{display:block}
+    #toast{display:none;position:fixed;top:158px;right:12px;z-index:3000;background:#fff;border-left:4px solid #d97706;border-radius:7px;padding:9px 12px;box-shadow:var(--shadow);font-size:11px;max-width:430px}#toast.active{display:block}
 
     .modal-overlay{display:none;position:fixed;inset:0;background:rgba(15,23,42,.66);z-index:6000;align-items:center;justify-content:center;padding:20px}.modal-overlay.active{display:flex}.modal{background:#fff;border-radius:10px;box-shadow:0 20px 60px rgba(0,0,0,.28);width:min(920px,96vw);max-height:86vh;overflow:auto}.modal-head{position:sticky;top:0;background:#fff;padding:12px 14px;border-bottom:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center;z-index:2}.modal-head h3{margin:0;font-size:16px}.modal-head button{border:0;background:#e2e8f0;border-radius:6px;padding:5px 8px;cursor:pointer}.modal-body{padding:12px 14px}.analytics-table{width:100%;border-collapse:collapse;font-size:11px}.analytics-table th,.analytics-table td{padding:6px 7px;border-bottom:1px solid #e2e8f0;text-align:right}.analytics-table th:first-child,.analytics-table td:first-child,.analytics-table th:nth-child(2),.analytics-table td:nth-child(2){text-align:left}.analytics-table th{font-size:10px;text-transform:uppercase;color:#475569;background:#f8fafc;position:sticky;top:47px}
     .form-row{display:flex;gap:8px}.form-row input{flex:1;padding:7px;border:1px solid var(--border);border-radius:6px}.modal-actions{text-align:right;margin-top:10px}.modal-actions button{padding:7px 12px;border:0;border-radius:6px;cursor:pointer;font-weight:750}.primary{background:#1d4ed8;color:#fff}.secondary{background:#e2e8f0;color:#334155}
 
     @media(max-width:900px){
-      #header{grid-template-columns:1fr;height:160px}#summary-strip{grid-template-columns:repeat(4,1fr)}#workspace{top:204px;grid-template-columns:0 minmax(0,1fr)}#sidebar{display:none}#timeline{grid-template-columns:130px minmax(0,1fr)}#data-health{display:none}
+      #header{grid-template-columns:1fr;height:145px}#summary-strip{grid-template-columns:repeat(4,1fr)}#workspace{top:189px;grid-template-columns:0 minmax(0,1fr)}#sidebar{display:none}#timeline{grid-template-columns:130px minmax(0,1fr)}
     }
   </style>
 </head>
@@ -69,7 +69,7 @@
     <button onclick="refreshApp(currentEvent&&currentEvent.eventKey)">Refresh dashboard</button>
     <button onclick="window.open('https://github.com/mefferso/WWA_verification/actions/workflows/test.yml','_blank','noopener')">Test results</button>
     <button onclick="openAnalytics()">Analytics</button>
-    <div id="tools-spacer"></div><div id="data-health"></div>
+    <div id="tools-spacer"></div>
   </div>
 
   <div id="header">
@@ -77,7 +77,6 @@
       <div class="eyebrow">WFO LIX verification</div>
       <h1 id="page-title">Multi-Hazard Verification</h1>
       <select id="event-select"><option>Loading events…</option></select>
-      <div id="event-submeta">Loading event metadata…</div>
     </div>
     <div id="summary-strip">
       <div class="summary-card"><div class="summary-label">Warned areas met</div><div class="summary-value" id="sum-areas">—</div><div class="summary-sub" id="sum-areas-sub">—</div></div>
@@ -92,8 +91,8 @@
       <div class="panel">
         <div class="panel-title">Display filters <span id="visible-station-count">—</span></div>
         <div class="panel-body filter-grid">
-          <label>Status<select id="filter-status"><option value="ALL">All</option><option value="MET">Met</option><option value="NOT_MET">Not met</option><option value="INDETERMINATE">Indeterminate</option><option value="NO_DATA">No data</option></select></label>
-          <label>Network tier<select id="filter-tier"><option value="ALL">All</option><option>A</option><option>B</option><option>C</option></select></label>
+          <label>Threshold<select id="filter-status"><option value="ALL">All</option><option value="MET">Met</option><option value="NOT_MET">Not met</option><option value="INDETERMINATE">Indeterminate</option><option value="NO_DATA">No data</option></select></label>
+          <label title="A = primary observing networks; B = secondary; C = other networks">Station priority<select id="filter-tier"><option value="ALL">All</option><option value="A">Primary (A)</option><option value="B">Secondary (B)</option><option value="C">Other (C)</option></select></label>
           <label>Mechanism<select id="filter-by"><option value="ALL">All</option><option value="TEMP">Temperature</option><option value="HEAT_INDEX">Heat index</option><option value="WINDCHILL">Wind chill</option><option value="RFW">RH + wind</option></select></label>
           <label>State<select id="filter-state"><option value="ALL">All</option><option value="LA">LA</option><option value="MS">MS</option></select></label>
         </div>
@@ -131,6 +130,20 @@
 
   const contextLayer=L.layerGroup().addTo(map), warningLayer=L.layerGroup().addTo(map), stationLayer=L.layerGroup().addTo(map);
   L.control.layers(null,{"County/parish boundaries":contextLayer,"Warned UGC verification":warningLayer,"Stations":stationLayer},{collapsed:false,position:'bottomright'}).addTo(map);
+
+  const verificationLegend=L.control({position:'topright'});
+  verificationLegend.onAdd=()=>{
+    const div=L.DomUtil.create('div','map-legend');
+    div.innerHTML='<div class="map-legend-title">Warned area threshold</div>'+
+      '<div class="map-legend-row"><span class="map-legend-swatch" style="background:rgba(22,163,74,.24);border-color:#16a34a"></span>Met</div>'+
+      '<div class="map-legend-row"><span class="map-legend-swatch" style="background:rgba(220,38,38,.24);border-color:#dc2626"></span>Not met</div>'+
+      '<div class="map-legend-row"><span class="map-legend-swatch" style="background:rgba(245,158,11,.24);border-color:#f59e0b"></span>Indeterminate</div>'+
+      '<div class="map-legend-row"><span class="map-legend-swatch" style="background:rgba(148,163,184,.24);border-color:#94a3b8"></span>No usable data</div>'+
+      '<div class="map-legend-note">Green/red reflect the final threshold result for each warned area. Station dots use the same status colors.</div>';
+    L.DomEvent.disableClickPropagation(div);
+    return div;
+  };
+  verificationLegend.addTo(map);
 
   let payload={events:[],rows:[],areas:{},areaVerification:[],analytics:[]};
   let eventMap={}, currentEvent=null, currentRows=[], currentAreaVerification=[], countyGeoJson=null;
@@ -193,7 +206,6 @@
   function updateHeader(){
     const e=currentEvent,s=e.summary||{},ac=s.areaCounts||{},sc=s.stationCounts||{};
     document.getElementById('page-title').textContent=e.productLabel||'Multi-Hazard Verification';
-    document.getElementById('event-submeta').textContent=`${e.hazard} #${e.eventId} • ${formatRange(e.issueUtc,e.expireUtc)} • ${e.warnedUgcs||'footprint unavailable'}`;
     document.getElementById('sum-areas').textContent=`${ac.MET||0}/${s.totalAreas||0}`;
     document.getElementById('sum-areas-sub').textContent=`${ac.NOT_MET||0} not met • ${ac.INDETERMINATE||0} indeterminate • ${ac.NO_DATA||0} no data`;
     document.getElementById('sum-stations').textContent=`${sc.MET||0}/${s.totalStations||0}`;
@@ -208,7 +220,6 @@
     document.getElementById('sum-confidence-sub').textContent=`${high} high-confidence areas • ${med} medium`;
     const fallback=/fallback|unresolved/i.test((e.footprintSource||'')+' '+(e.areaTimingMode||''));
     const partial=e.dataComplete===false;
-    document.getElementById('data-health').textContent=partial?'⚠ Incomplete or imported data: '+(e.runNote||'one or more fetches failed'):(fallback?'⚠ '+e.areaTimingMode:'✓ Actual IEM VTEC footprint loaded');
     document.getElementById('methodology').innerHTML=`<b>Footprint:</b> ${esc(e.footprintSource||'—')}<br><b>Timing:</b> ${esc(e.areaTimingMode||'—')}<br><b>Area status:</b> one station meeting criteria establishes MET; confidence is reported separately; inadequate coverage becomes INDETERMINATE rather than a false non-verification.${e.hazard==='RFW'?'<br><b>RFW:</b> status is meteorological criteria only; fuels/KBDI and land-manager coordination are not inferred.':''}`;
     if(partial)toast('This event has a partial observation run. Check the event data and GitHub run log before using it operationally.'); else if(fallback)toast('This event used a documented IEM footprint/timing fallback. Check the event metadata before treating area timing as exact.');
   }
@@ -230,8 +241,8 @@
 
   function areaStyle(status){
     const s=String(status||'NO_DATA');
-    const colors={MET:'#15803d',NOT_MET:'#b91c1c',INDETERMINATE:'#d97706',NO_DATA:'#64748b'};
-    return {color:colors[s]||colors.NO_DATA,weight:2.2,opacity:.95,fillColor:colors[s]||colors.NO_DATA,fillOpacity:.20};
+    const colors={MET:'#16a34a',NOT_MET:'#dc2626',INDETERMINATE:'#f59e0b',NO_DATA:'#94a3b8'};
+    return {color:colors[s]||colors.NO_DATA,weight:2.2,opacity:.95,fillColor:colors[s]||colors.NO_DATA,fillOpacity:.24};
   }
 
   function renderStations(){
@@ -254,7 +265,7 @@
 
   function stationStyle(row){
     const s=String(row.VERIFY_STATUS||'NO_DATA'),tier=String(row.NETWORK_TIER||'C');
-    const colors={MET:'#15803d',NOT_MET:'#b91c1c',INDETERMINATE:'#d97706',NO_DATA:'#64748b'};
+    const colors={MET:'#16a34a',NOT_MET:'#dc2626',INDETERMINATE:'#f59e0b',NO_DATA:'#94a3b8'};
     return {radius:tier==='A'?8:tier==='B'?7:6,color:'#111827',weight:tier==='A'?2:1,fillColor:colors[s]||colors.NO_DATA,fillOpacity:s==='NO_DATA'?.25:.88,dashArray:s==='INDETERMINATE'?'3 2':null};
   }
 
