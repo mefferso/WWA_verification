@@ -2,6 +2,9 @@ name: Verify warning events
 on:
   schedule:
     - cron: '17 11 * * *'
+  push:
+    paths:
+      - '.github/run-verification-now'
   workflow_dispatch:
     inputs:
       year:
@@ -57,6 +60,8 @@ jobs:
           args=()
           if [[ "$RUN_EVENT" == "schedule" ]]; then
             args+=(--recent)
+          elif [[ "$RUN_EVENT" == "push" ]]; then
+            args+=(--year 2026 --month 8 --limit 0)
           else
             args+=(--year "$RUN_YEAR" --limit "${RUN_LIMIT:-0}")
             if [[ "$RUN_ANNUAL" == "true" ]]; then args+=(--annual); else args+=(--month "$RUN_MONTH"); fi
