@@ -174,6 +174,57 @@ function evaluateSampleCriteria_(hazard, rules, tempF, wc, hi, rhPct, windMph, g
   };
 }
 
+function pointOnSegment_(x,y,x1,y1,x2,y2) {
+  var eps=1e-10,cross=(x-x1)*(y2-y1)-(y-y1)*(x2-x1);
+  if (Math.abs(cross)>eps) return false;
+  return x>=Math.min(x1,x2)-eps&&x<=Math.max(x1,x2)+eps&&y>=Math.min(y1,y2)-eps&&y<=Math.max(y1,y2)+eps;
+}
+
+function pointInRing_(lon,lat,ring) {
+  if (!Array.isArray(ring)||ring.length<3) return false;
+  var inside=false;
+  for (var i=0,j=ring.length-1;i<ring.length;j=i++) {
+    var a=ring[i],b=ring[j];if(!Array.isArray(a)||!Array.isArray(b))continue;
+    var xi=Number(a[0]),yi=Number(a[1]),xj=Number(b[0]),yj=Number(b[1]);
+    if (![xi,yi,xj,yj].every(isFinite)) continue;
+    if (pointOnSegment_(lon,lat,xi,yi,xj,yj)) return true;
+    var crosses=((yi>lat)!==(yj>lat))&&(lon<(xj-xi)*(lat-yi)/(yj-yi)+xi);
+    if(crosses)inside=!inside;
+  }
+  return inside;
+}
+
+function pointInPolygonCoords_(lon,lat,coords) {
+  if(!Array.isArray(coords)||!coords.length||!pointInRing_(lon,lat,coords[0]))return false;
+  for(var i=1;i<coords.length;i++)if(pointInRing_(lon,lat,coords[i]))return false;
+  return true;
+}
+
+function pointInGeometry_(lon,lat,geometry) {
+  lon=toFinite_(lon);lat=toFinite_(lat);
+  if(lon===null||lat===null||!geometry)return false;
+  if(geometry.type==='Polygon')return pointInPolygonCoords_(lon,lat,geometry.coordinates);
+  if(geometry.type==='MultiPolygon')return (geometry.coordinates||[]).some(function(poly){return pointInPolygonCoords_(lon,lat,poly);});
+  return false;
+}
+
+function matchStationToWarnedUgc_(station,areas) {
+  var zone=normalizeUgc_(station&&station.NWSZONE),lon=toFinite_(station&&station.LONGITUDE),lat=toFinite_(station&&station.LATITUDE);
+  var warned=[...new Set((areas||[]).map(function(a){return normalizeUgc_(a.ugc);}).filter(Boolean))];
+  var geomMatches=[];
+  if(lon!==null&&lat!==null){
+    warned.forEach(function(ugc){
+      var withGeometry=(areas||[]).filter(function(a){return normalizeUgc_(a.ugc)===ugc&&a.geometry;});
+      if(withGeometry.some(function(a){return pointInGeometry_(lon,lat,a.geometry);}))geomMatches.push(ugc);
+    });
+  }
+  if(zone&&geomMatches.indexOf(zone)!==-1)return zone;
+  if(geomMatches.length===1)return geomMatches[0];
+  if(geomMatches.length>1&&zone&&warned.indexOf(zone)!==-1)return zone;
+  if(geomMatches.length>1)return geomMatches.slice().sort()[0];
+  return zone&&warned.indexOf(zone)!==-1?zone:'';
+}
+
 function getAreaWindowsForStation_(event, nwszone) {
   var exact = [];
   for (var i = 0; i < (event.areas || []).length; i++) {
@@ -471,4 +522,4 @@ function intervalActive_(startMs,endMs,windows){
 function fmtYmdHm_(d){return d.toISOString().slice(0,16).replace(/[-:T]/g,'');}
 function toIsoMinute_(d){return d.toISOString().slice(0,16)+'Z';}
 
-module.exports={HAZARD_META,STATION_HEADERS,EVENT_HEADERS,EVENT_AREA_HEADERS,EVENT_OBS_HEADERS,RESULT_HEADERS,SAMPLE_HEADERS,AREA_VERIFY_HEADERS,normalizeUgc_,getHazardFromIem_,resolveProductLabel_,newStationAggregate_,updateStationAggregate_,finalizeAggregate_,aggregateToRow_,evaluateSampleCriteria_,getAreaWindowsForStation_,isTimeActiveForStation_,activeWindowDurationMs_,coveragePct_,computeRunStats_,addRuleRow_,lookupRulesForArea_,mergeRuleMaps_,normalizeAreaKey_,evaluateStation_,resultEval_,thresholdSummaryFor_,ruleText_,ruleDurationMinutes_,durationSatisfied_,stationConfidence_,summarizeEventForPayload_,computeWindChillF_,validHeatIndexF_,computeHeatIndexF_,computeDewpointF_,classifyStationTier_,networkName_,headersMatch_,rowToObject_,numericizeEventObs_,numericizePayloadRow_,ensureVars_,parseIdSet_,buildUrl_,findObsKey_,compare_,normalizeComparator_,normCounty_,parseDateSafe_,validRange_,toFinite_,minFinite_,maxFinite_,round_,pad2_,isValidDate_,formatMinutesHuman_,intervalActive_,fmtYmdHm_,toIsoMinute_};
+module.exports={HAZARD_META,STATION_HEADERS,EVENT_HEADERS,EVENT_AREA_HEADERS,EVENT_OBS_HEADERS,RESULT_HEADERS,SAMPLE_HEADERS,AREA_VERIFY_HEADERS,normalizeUgc_,getHazardFromIem_,resolveProductLabel_,newStationAggregate_,updateStationAggregate_,finalizeAggregate_,aggregateToRow_,evaluateSampleCriteria_,pointOnSegment_,pointInRing_,pointInGeometry_,matchStationToWarnedUgc_,getAreaWindowsForStation_,isTimeActiveForStation_,activeWindowDurationMs_,coveragePct_,computeRunStats_,addRuleRow_,lookupRulesForArea_,mergeRuleMaps_,normalizeAreaKey_,evaluateStation_,resultEval_,thresholdSummaryFor_,ruleText_,ruleDurationMinutes_,durationSatisfied_,stationConfidence_,summarizeEventForPayload_,computeWindChillF_,validHeatIndexF_,computeHeatIndexF_,computeDewpointF_,classifyStationTier_,networkName_,headersMatch_,rowToObject_,numericizeEventObs_,numericizePayloadRow_,ensureVars_,parseIdSet_,buildUrl_,findObsKey_,compare_,normalizeComparator_,normCounty_,parseDateSafe_,validRange_,toFinite_,minFinite_,maxFinite_,round_,pad2_,isValidDate_,formatMinutesHuman_,intervalActive_,fmtYmdHm_,toIsoMinute_};
