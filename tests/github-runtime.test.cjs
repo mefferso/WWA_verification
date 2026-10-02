@@ -11,6 +11,8 @@ test('Dashboard keeps station popups concise and no-data stations optional',()=>
  const html=fs.readFileSync(path.resolve(__dirname,'../site/index.html'),'utf8');
  assert.ok(html.includes('id="show-no-data"'));
  assert.ok(html.includes('Show no-data stations'));
+ assert.ok(html.includes('Download Results'));
+ assert.ok(html.includes('function downloadSelectedResults()'));
  assert.ok(html.includes('function validHeatIndex(v)'));
  const popup=html.slice(html.indexOf('function buildStationPopup'),html.indexOf('function fitEventBounds'));
  assert.equal(popup.includes('<td>Status</td>'),false);
