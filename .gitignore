@@ -1,0 +1,13 @@
+.clasp.json
+.clasprc.json
+.env
+.env.*
+node_modules/
+*.xlsx
+*.xls
+*.csv
+*.zip
+upload/
+backups/
+credentials*.json
+secrets*.json

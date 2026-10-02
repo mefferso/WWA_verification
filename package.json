@@ -1,0 +1,7 @@
+{
+  "name": "lix-wwa-verification",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {"test": "node --test tests/*.test.cjs", "check": "node scripts/check.cjs"},
+  "engines": {"node": ">=22"}
+}
