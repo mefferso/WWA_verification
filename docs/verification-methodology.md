@@ -1,12 +1,12 @@
 # Verification methodology
 
-This documents the uploaded project and threshold export, not a newly approved warning policy. The thresholds and comparator semantics were preserved. IEM EC/WC warnings map to `EC`, EH/XH to `EH`, and FW to `RFW`; only significance `W` is supported.
+This documents the preserved meteorological policy and its GitHub runtime implementation. The thresholds and comparator semantics were preserved. IEM EC/WC warnings map to `EC`, EH/XH to `EH`, and FW to `RFW`; only significance `W` is supported.
 
 ## Rule precedence
 
 Rules merge per parameter: state `ALL` rows → matching county/parish rows → exact ZoneOverrides UGC rows. County/parish matching removes punctuation and County/Parish suffixes, lowercases text, and normalizes Saint to St. `LA079` normalizes to `LAZ079`; canonical county (`LAC051`) and marine (`GMZ570`) identifiers retain their type.
 
-Both Thresholds and ZoneOverrides use positional columns A:G. The original `THERSHOLD` header typo is retained in the schema snapshot because the code uses position E, not its label. Blank `DURATION_HOURS` means no duration requirement; a single valid threshold-meeting observation suffices. All 38 exported threshold rows have blank duration. ZoneOverrides is empty.
+Imported Thresholds and ZoneOverrides use positional columns A:G; current config JSON retains that seven-element order. The original `THERSHOLD` header typo is retained in the schema snapshot because the code uses position E, not its label. Blank `DURATION_HOURS` means no duration requirement; a single valid threshold-meeting observation suffices. All 38 exported threshold rows have blank duration. ZoneOverrides is empty.
 
 ## Exported thresholds
 
@@ -22,7 +22,7 @@ Both Thresholds and ZoneOverrides use positional columns A:G. The original `THER
 
 The EC export contains TEMP_F rules only. The existing implementation applies that rule to wind chill as an alternative when a WIND_CHILL_F rule is absent. This behavior is deliberately preserved and should be confirmed against the desired office methodology. Explicit zone or wind-chill overrides can change it without source edits.
 
-`RFW wind basis` defaults to `sustained`; an explicit `gust` Config value substitutes gusts. Gusts are never silently used to fill missing sustained wind. RFW is meteorological verification only: fuel dryness, KBDI, land-manager decisions, and full warning justification are not inferred.
+`config/settings.json` `rfwWindBasis` defaults to `sustained`; an explicit `gust` value substitutes gusts. Gusts are never silently used to fill missing sustained wind. RFW is meteorological verification only: fuel dryness, KBDI, land-manager decisions, and full warning justification are not inferred.
 
 ## Meteorological calculations and missing data
 
@@ -36,7 +36,7 @@ Only samples inside inclusive warning windows are used. UGC-specific start/end t
 
 Continuous duration is the span between successive true samples, not the number of samples times a presumed interval. A false sample, a gap exceeding `Duration max gap minutes` (default 30), or an inactive warned interval breaks the run. Isolated true samples have zero continuous duration. Duplicate true timestamps do not reset a run. Overlapping active windows are unioned. Cumulative duration is retained as diagnostic information but is not used to satisfy continuous-duration rules. RFW uses the larger of RH/wind duration requirements.
 
-Coverage is the sum of acceptable adjacent observation intervals divided by the union of active warning duration, capped at 100%. It is based on **any usable variable**, not hazard-specific completeness. The new negative-result guard requires the applicable extrema to exist, but intermittent missing hazard variables can still overstate coverage; per-variable coverage requires a future schema change. Defaults: negative-result coverage ≥50%, gap ≤30 minutes.
+Coverage is the sum of acceptable adjacent **hazard-usable** observation intervals divided by the union of active warning duration, capped at 100%. EH requires inputs for every configured temperature/Heat Index alternative. EC requires temperature and wind for the implicit wind-chill alternative as well as explicit wind-chill rules. RFW requires simultaneous RH and the selected wind/gust. A missing hazard variable cannot establish an adjacent coverage interval. This conservative availability check also requires valid wind values for calm EC reports; wind chill outside its formula domain remains missing. Defaults: negative-result coverage ≥50%, gap ≤30 minutes. Sparse positive detections still count as MET with confidence reported separately.
 
 ## Status and confidence
 
@@ -47,11 +47,11 @@ Coverage is the sum of acceptable adjacent observation intervals divided by the 
 
 Tier A defaults to MNET 1 (ASOS/AWOS) and, for RFW, MNET 2 (RAWS). RAWS is B for other hazards. Explicit Tier A IDs override defaults; Tier B IDs apply after built-in classification; other networks are C. These are network proxies, not station-specific siting validation.
 
-Station confidence is LOW for NO_DATA, incomplete fetches, or QC removal other than `on`. Otherwise Tier A plus ≥70% coverage is HIGH; A/B plus ≥40% coverage is MEDIUM; remaining cases LOW. **The export has QC removal `off`; this remains unchanged.** QC flags are requested but not interpreted/stored individually. Switching QC to `on` changes the observation policy and should be an explicit operator decision.
+Station confidence is LOW for NO_DATA, incomplete fetches, or QC removal other than `on`. Otherwise Tier A plus ≥70% coverage is HIGH; A/B plus ≥40% coverage is MEDIUM; remaining cases LOW. **The export has QC removal `off`; this remains unchanged.** QC flags are requested but not interpreted/stored individually. Switching QC to `on` changes the observation policy and requires a new ingestion run; publication cannot retroactively apply provider QC. Samples keep their ingestion policy.
 
 An area is MET if any station meets criteria, even when that station is LOW confidence. Area confidence now derives from MET-establishing stations for a MET area, rather than an unrelated Tier A station. Area NOT_MET still means observed station evidence, not proof that every point in the zone failed. No areal population weighting is applied.
 
-Historical analytics count event–UGC pairs and unique events represented by AreaVerification, grouped by event year and hazard. Events lacking area rows are omitted. Percentages in the UI use available stored areas, not an independently validated full archive; multiple UGCs and rerun overlaps are not independent warning events. `FIRST_VERIFY_TIME_UTC` is an approximate diagnostic for EC/EH based on extrema, not a complete earliest duration-qualified exceedance search.
+Historical analytics count event–UGC pairs and all archived events, grouped by event year and hazard. Events lacking observations remain represented, and incomplete events are counted explicitly. Percentages in the UI use available stored areas, not an independently validated full archive; multiple UGCs and rerun overlaps are not independent warning events. `FIRST_VERIFY_TIME_UTC` is an approximate diagnostic for EC/EH based on extrema, not a complete earliest duration-qualified exceedance search.
 
 ## References
 
@@ -59,3 +59,7 @@ Historical analytics count event–UGC pairs and unique events represented by Ar
 - https://www.weather.gov/safety/cold-wind-chill-chart
 - https://docs.synopticdata.com/services/time-series
 - https://docs.synopticdata.com/services/mesonet-data-qc
+
+## Policy changes and historical evidence
+
+Every site build recomputes extrema, threshold flags, simultaneous RFW detections, continuous durations, and coverage from stored native samples. Current settings never reinterpret an old gust flag as sustained-wind evidence. QC provenance stays at ingestion-time values. Changes to station selection or provider QC need fresh ingestion, automatically invalidating cache fingerprints. Imported history lacks provider-completeness validation and is visibly incomplete until reconciled. A station sample archive does not establish complete VTEC lifecycle history or full spatial coverage.

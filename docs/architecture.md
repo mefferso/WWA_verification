@@ -1,39 +1,43 @@
-# Architecture and data flow
+# Architecture
 
-The existing Apps Script/Sheets structure is retained. No standalone server, database migration, GitHub Pages replacement, or paid infrastructure was introduced.
+GitHub owns configuration, code, stored observations, tests, execution, and publication. IEM and Synoptic remain external weather data providers. The browser also uses public Leaflet/CDN and geographic-context services; “GitHub only” describes the application runtime/datastore, not hosting the weather-provider databases themselves.
 
-```mermaid
-flowchart TD
-  I["IEM event list and VTEC footprint"] --> B["Apps Script verification"]
-  S["Synoptic metadata and observations"] --> B
-  C["Sheet Config and threshold tabs"] --> B
-  B --> E["Events, EventAreas, _EventObs, _ObsSamples"]
-  E --> R["Results and AreaVerification"]
-  R --> U["Apps Script Leaflet UI"]
-  E --> U
-```
+## Data flow
 
-## Run flow
+1. `.github/workflows/verify.yml` runs on schedule or authenticated workflow dispatch. The token comes exclusively from an Actions secret.
+2. `scripts/verify.cjs` validates the requested UTC year/month or annual range. `src/providers.cjs` reads IEM annual VTEC events, event GeoJSON, Synoptic station metadata, and station time series.
+3. `src/runner.cjs` groups supported warning events, resolves canonical UGC windows, and selects stations whose current metadata zone exactly matches a warned UGC. It processes 60 station IDs per request and at most 24 hours per time slice.
+4. `src/core.cjs` applies the preserved meteorological equations/rules. Native usable samples and station aggregates are saved atomically per event by `src/store.cjs`. Provider failures retain the previous event file.
+5. The workflow validates/builds and commits completed checkpoints plus a run report. A 45-minute soft deadline leaves time to commit before the job's 60-minute limit. Interrupted current events remain eligible for rerun; earlier completed events are already checkpointed locally and committed by the remaining steps.
+6. `.github/workflows/pages.yml` tests/builds on source pushes, manual dispatch, and completed verification runs (including partial failures). This workflow_run trigger is necessary because GITHUB_TOKEN bot pushes do not start ordinary push workflows.
+7. `scripts/build-site.cjs` publishes read-only event summaries, footprints, timeline files, analytics, and the existing dashboard to Pages. `src/recalculate.cjs` rebuilds extrema/flags/durations/coverage from native samples using current rules. The browser lazy-loads one event at a time using `site/github-runtime.js`.
 
-`runMonthlyWeb(month, year)` or `runAnnualWeb(year)` creates a UTC query range. The corresponding menu functions prompt in the Sheet. All mutation entry points use one script lock; internal unlocked calls avoid nesting locks. `validateRuntimeSchema_` checks populated runtime-table headers before a run or rebuild.
+## Components
 
-1. Read Config, preferred Script Properties, and threshold maps. Resolve the existing runtime Sheet through `SPREADSHEET_ID` or the active bound spreadsheet.
-2. Refresh Synoptic metadata for the configured CWA, keeping inactive stations eligible for historical data.
-3. Fetch the IEM annual event list and select supported warning events overlapping the requested period. Group by hazard, phenomenon, and ETN. Keys include year, WFO, hazard, phenomenon, ETN, and first issue timestamp.
-4. Fetch the event GeoJSON; combine UGC identifiers with event-row timing when exposed. GeoJSON-only UGCs get event-wide timing explicitly marked as fallback. No polygons are persisted in Sheets.
-5. Select stations using exact normalized public forecast-zone UGC matches, matching CWA and applicable rules. Missing footprints do not select the whole CWA. County UGCs are preserved but cannot be matched to station public-zone metadata without an additional crosswalk.
-6. Reuse completed summaries/samples only when expiry, warned UGCs, and the calculation fingerprint match, at least one summary exists, the event ended over an hour ago, and forced refresh is off.
-7. Otherwise fetch time series in groups of 60 station IDs. Retain samples within station warning windows, select the first preferred observation sensor array, apply physical range guards, calculate Heat Index/wind chill/dewpoint, and evaluate criteria. Aggregate extrema, sample counts, coverage, and duration in memory.
-8. Invalidate old completion markers before fresh writes. Replace only requested event keys in raw tables while retaining other keys. Publish event metadata after sample/summary persistence. Rebuild all Results and AreaVerification from retained history.
+| Path | Responsibility |
+| --- | --- |
+| config/ | Exact imported thresholds, zone overrides, safe settings |
+| src/core.cjs | Pure scientific/rule functions ported from reviewed Code.gs |
+| src/providers.cjs | Schema-validated HTTP requests, bounded retries, sanitized errors |
+| src/runner.cjs | Event ingestion, station selection, cache identity, checkpoints, budget |
+| src/recalculate.cjs | Recompute derived values from saved samples under current policy |
+| src/store.cjs | Safe event filenames, compressed storage, atomic replacement |
+| src/payload.cjs | Current station/area statuses, event summary, historical index |
+| site/ | Leaflet dashboard and asynchronous static-data adapter |
+| scripts/ | CLI verification, static build, validation, one-time workbook import |
+| tests/ | Scientific functions, schema/import retention, providers, runtime regressions |
+| legacy/apps-script/ | Archived implementation and original deployment documentation |
 
-## UI flow
+## Caching and consistency
 
-`doGet` serves Index. `getVerificationMapPayload` loads all events, Results, area summaries, and analytics. Polygons are fetched only for the selected event through `getEventFootprintPayload`. Timeline samples are requested by event through `getEventTimelinePayload`; the backend currently reads the full sample sheet then filters it. The frontend groups native samples into five-minute bins; the latest sample encountered per station/bin wins. Colors in timeline mode represent instantaneous criteria, not the final duration-qualified status.
+Provider calls retry up to three times with 45-second request timeouts; errors never include query strings or response bodies. Authentication errors and invalid schemas fail visibly. Accepted Synoptic response code 2 means a successful empty query, not a threshold miss.
 
-Leaflet uses OpenStreetMap tiles. An ArcGIS county/parish layer is background context only; it is not used for verification matching. Boundary-load failure does not change station calculations. Event switches reject stale footprint and timeline responses. Station display filters do not change stored verification results or analytics.
+The SHA-256 cache fingerprint includes algorithm version, event timing, warned areas, safe config/rules, and relevant station metadata. A terminal cache also requires nonempty samples/observations and computation at least one hour after expiration. Active or pre-expiration snapshots are refreshed; empty queries do not become permanent success caches. Force bypasses reuse. Footprints and current metadata are checked even for reusable events.
 
-## Limits and cache behavior
+Event JSON is written to a temporary file then renamed. There are no large Sheet writes or mixed derived-table transactions. A failed event retains its old file, while independent completed events can publish. A canceled/hard-killed job can still lose local progress since the last git commit; the soft deadline reduces that risk but is not durable per-request cloud storage. Rerun the same range without force to continue.
 
-The persistent cache is the existing Events/_EventObs/_ObsSamples archive, not Apps Script CacheService. The fingerprint hashes algorithm version, variables, units, QC settings, wind basis, gap limit, network tiers, threshold maps, station metadata, and warning windows. Tokens are excluded. Old unversioned records refresh once; changing unrelated station metadata may also invalidate cache. `buildResults` alone cannot regenerate duration flags or simultaneous RFW detections after threshold changes; rerun the relevant periods.
+Browser index/event caches are bounded and reset by Refresh dashboard. Gzip is detected from bytes so both raw-gzip and server-decompressed responses work. Native browser DecompressionStream support is required when gzip bytes are served. Late event responses are ignored, and revisiting an event preserves loaded geometry.
 
-Requests and writes remain synchronous. Annual runs, full-table cache loading, historical payloads, and multi-event sample accumulation can exceed runtime/memory limits. Chunked writes reserve row/column capacity and clear trailing content after writes succeed, but neither multiple chunks nor multiple tabs are transactional. No automatic continuation or atomic snapshot publication is claimed. Readers can observe an in-progress rebuild; perform large reruns outside operational use.
+## Operating scale
+
+This repository archive is appropriate for the present LIX project. Git history grows with changed compressed event files; sample arrays are held in memory one event at a time during ingestion, and publication reads the retained archive. It is not an unbounded national data warehouse. Annual jobs may require several resumptions and provider plan limits still apply. No database, Google cloud project, or always-on API server is required.

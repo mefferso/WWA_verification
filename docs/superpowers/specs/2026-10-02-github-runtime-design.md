@@ -1,0 +1,11 @@
+# GitHub-only WWA verification
+
+User direction supersedes the earlier Apps Script/Sheets runtime: all configuration, imported historical data, verification jobs, and website live in GitHub. No Google runtime or clasp dependency remains. Existing meteorological thresholds and sample/duration rules are preserved.
+
+GitHub Pages serves the existing Leaflet dashboard adapted to static, per-event snapshots. GitHub Actions runs Node.js verification using IEM/Synoptic, commits updated event snapshots, and publishes the website. Config files hold safe settings and all 38 workbook threshold rows. The Synoptic token is a GitHub Actions secret, never frontend code, data, logs, or source. Run controls link to authenticated GitHub Actions instead of embedding a write credential in Pages.
+
+Reuse the tested pure verification functions from the existing Code.gs. Separate providers, event store, runner, and payload generation. Store one gzip JSON snapshot per event; write atomically and independently so completed work survives later failures. Cache fingerprints include policy, thresholds, station metadata, timing, and algorithm version. Missing provider data/footprints must not assert verification. Import every event and all raw summaries/samples from the new workbook; regenerate derived tables and mark missing observations explicitly rather than trusting old complete markers. Preserve legacy source as a reference only.
+
+Snapshots retain native samples, actual warned UGCs, station confidence, timing provenance, and import/fetch warnings. Initial UI fetches an event index and the selected event only; samples/geometry load on demand. Existing county context remains a display layer. No zero values or station coordinates may be coerced to missing/0° markers. Partial source history remains labeled.
+
+Actions provides manual month/year/annual/force inputs and a daily UTC schedule refreshing recent months. It serializes writers and never force-pushes. Credential-free CI builds the imported dashboard and runs tests; provider jobs require SYNOPTIC_API_TOKEN. Publishing requires GitHub Pages enabled for Actions. Connector lacks Pages settings/secret-write tools; these account settings may remain manual. No live token is committed merely to make automation run.

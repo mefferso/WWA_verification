@@ -1,35 +1,30 @@
-# Deployment and update runbook
+# GitHub deployment and updates
 
-Follow the exact initial linkage/update commands in [README](../README.md). This project targets the **existing** bound Apps Script project and live Sheet. Script ID, spreadsheet ID, web-app deployment ID, and Google Cloud project ID are different identifiers. None were inferred from uploaded source or workbook.
+## Activate
 
-## Manifest and authentication
+1. [Actions secrets](https://github.com/mefferso/WWA_verification/settings/secrets/actions): create repository secret **SYNOPTIC_API_TOKEN** with the current token from your workbook/provider account. The value was deliberately excluded from tracked files.
+2. [Pages settings](https://github.com/mefferso/WWA_verification/settings/pages): Source **GitHub Actions**.
+3. [Publish dashboard](https://github.com/mefferso/WWA_verification/actions/workflows/pages.yml): Run workflow on main. Confirm the deploy-pages step succeeds. Expected URL: https://mefferso.github.io/WWA_verification/.
+4. [Verify warning events](https://github.com/mefferso/WWA_verification/actions/workflows/verify.yml): Run workflow with the desired period. Initial reconciliation: year 2026, annual true, force false, limit 0. Repeat when the run report lists deferred events.
 
-The provided manifest uses V8, America/Chicago, spreadsheet access, external requests, and container UI scopes. It has no inferred deployment audience/execute-as configuration, no advanced services, and no hardcoded resource IDs. Compare the actual existing manifest before first push. Preserve required project settings/additional files if the live project differs. `SYNOPTIC_API_TOKEN` and `SPREADSHEET_ID` are manually populated Script Properties, not GitHub files.
+If organization/repository policy disables Actions or workflow write permissions, allow these workflows and their declared permissions. The verifier needs contents:write to commit data; Pages needs pages:write and id-token:write. There is no additional personal access token. The public dashboard does not expose mutation endpoints.
 
-Keep OAuth credentials local. The `.gitignore` excludes `.clasprc.json`, `.clasp.json`, workbook exports, raw CSVs, and secrets files. No automated clasp deployment was installed because the target project and deployment settings were not provided.
+## Updates
 
-## Smoke test
+Commit or merge changes into main. CI runs tests/config validation/static build, and Pages independently repeats validation before deployment. Edit config files via GitHub's file editor or a branch/PR. Threshold/duration/wind-basis changes reaggregate saved samples during publication. QC/selection changes require a fresh verification run for affected periods; the cache fingerprint invalidates them automatically. Force is optional unless upstream historical observations changed without corresponding metadata/config changes.
 
-1. Make a dated workbook backup. Note Events, _EventObs, _ObsSamples, Results, and AreaVerification row counts and key sets.
-2. Run Apps Script self-tests. Local `npm test` has additional matching, cache, null-input, QC, provider-error, and duration tests beyond the menu self-tests.
-3. Run `buildResults` in the existing project. This rebuilds derived tables from the 1,754 summary rows in the export; it does not refetch or restore missing EC/RFW history. Confirm each _EventObs row yields a Results row and event–UGC pairs populate the area table correctly.
-4. Run one known month containing a small completed warning. The first run after migration recalculates old caches. Confirm exact warned UGC/station matching, source/timing notes, meteorological extrema, sample durations, and no token in logs/errors.
-5. Run the same month again. After the event has expired for over an hour, confirm a cache hit and unchanged raw sample/summary counts. Test forced refresh separately with a workbook backup.
-6. Inspect one event per hazard. Check EC temperature/wind-chill alternatives; EH Heat Index inputs and threshold; RFW simultaneous RH/sustained wind and separate gust display.
-7. Load the versioned web app: station filters, polygons, area details, timeline, and analytics. Switch events quickly while timeline/geometry requests are pending. Confirm missing coordinates never become a marker at 0°,0°.
-8. Run another month and confirm previously stored event keys remain. Check completed-event metadata is not published for failed/partial writes. If runtime expires, restore/check tables before rerunning; no automatic continuation exists.
-9. Compare policy-sensitive outputs with the old deployment: QC `off` now caps confidence at LOW; unresolved footprints do not verify the full CWA; inactive gaps no longer inflate duration. Threshold values remain unchanged.
+Scheduled runs refresh the previous and current calendar months at 11:17 UTC daily. Manual annual=false selects one UTC calendar month; annual=true selects the whole UTC year. Limit 0 means no explicit event-count limit, subject to the 45-minute soft budget. A positive limit bounds fresh processed events; cached events do not consume it. The range includes overlapping warning periods, using each event's full issue/expiration window.
 
-## Runtime and write operations
+## Partial failures and recovery
 
-Google currently documents a six-minute execution limit. Annual runs remain synchronous. Use monthly runs first; a month can also exceed the limit. No five-minute deadline, queued continuation, or daily quota manager is implemented. Synoptic limits time-series request volume; groups of 60 IDs do not guarantee success for arbitrarily long events. See https://developers.google.com/apps-script/guides/services/quotas and https://docs.synopticdata.com/services/time-series.
+Review Actions logs and `data/last-run.json`. Completed independent events are committed before the workflow marks a partial provider failure red. Pages can publish these validated checkpoints, keeping old files for failed events. The report has computed/reused/failed/deferred counts, timing, range, and soft-budget exhaustion. An authentication error requires correcting the secret; a provider outage calls for rerunning later.
 
-Output write chunks: Stations 1,000 rows; Results 750; AreaVerification 1,000; _ObsSamples 1,500; other event-key tables 1,000. Row/column grid capacity is expanded before writing. Remaining old tails are cleared after successful writes. The script lock prevents concurrent writers within this Apps Script project; it does not block human Sheet edits or provide a cross-tab transaction. Readers can see partial updates.
+Budget-deferred events are not errors, but the run is not a complete historical reconciliation. Repeat the same range with force=false. Completed post-expiration events are cached; the interrupted event starts again. A canceled/hard-timeout job can lose uncommitted local progress. Conflicting simultaneous human data edits cause git rebase/push to fail rather than overwrite history; resolve the conflict in GitHub and rerun. Verification runs serialize through Actions concurrency.
 
-Populated runtime-table header mismatches now stop with an error instead of dropping old rows. Do not fix a mismatch by clearing the table. Back up and migrate columns/rows explicitly. `_Minima` is a legacy tab and is neither deleted nor used by the current core. No schema migration is silently triggered by `clasp push`.
+To restore old data, revert the relevant git commit or restore specific event files from history, validate, and publish. Do not delete the whole archive to fix one event. Stop schedules by disabling Verify warning events in Actions if needed.
 
-## Rebuild and rollback
+## Credentials and Google retirement
 
-Use `buildResults` to repair stale derived tables when raw summaries match current thresholds/configuration. After threshold, duration, wind-basis, or QC changes, rerun all affected periods to regenerate samples and aggregate duration; rebuilding extrema alone is insufficient.
+Rotate the Synoptic token by updating the repository secret. Never put it in the browser, config JSON, imported gzip data, .env commits, or workflow source. HTTP errors are redacted. Imported workbook/headerless Log are ignored and were not committed.
 
-For source rollback, select a known-good git commit, test, push to the same project, and update the existing deployment to the matching version (or select the previous Apps Script deployment version). For data rollback, restore the separately backed-up workbook tables. Rolling back code does not restore data, thresholds, Script Properties, or completed cache entries. Invalidate/rerun affected caches after rollback.
+No Script ID, .clasp.json, Google authorization, Apps Script web-app deployment, or live Sheet maintenance is needed. Keep the old workbook/Sheet as your personal backup if desired. Archived `legacy/apps-script/` is reference-only and has no active workflow. You may disable obsolete Google triggers once the GitHub dashboard and fresh verification runs are confirmed working; the migration did not access or alter your Google account.

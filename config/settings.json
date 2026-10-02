@@ -1,0 +1,12 @@
+{
+  "cwa": "LIX",
+  "qcChecks": "synopticlabs",
+  "qcRemove": "off",
+  "vars": "",
+  "units": "english,speed|mph,temp|f",
+  "rfwWindBasis": "sustained",
+  "durationMaxGapMinutes": 30.0,
+  "minimumCoveragePct": 50.0,
+  "tierAMnetIds": [],
+  "tierBMnetIds": []
+}

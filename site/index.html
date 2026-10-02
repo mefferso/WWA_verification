@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>LIX WWA Verification</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="github-runtime.js"></script>
+  <style>
+    :root {
+      --nav:#172033; --blue:#153e75; --blue2:#1d4ed8; --bg:#f1f5f9; --panel:#ffffff;
+      --text:#0f172a; --muted:#64748b; --border:#cbd5e1;
+      --met:#15803d; --not:#b91c1c; --ind:#d97706; --nodata:#64748b;
+      --shadow:0 4px 16px rgba(15,23,42,.14);
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;width:100%;height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--text);overflow:hidden}
+    button,select,input{font:inherit}
+
+    #tools-menu{height:44px;background:var(--nav);display:flex;align-items:center;gap:8px;padding:0 12px;color:#fff;position:fixed;top:0;left:0;right:0;z-index:1200;border-bottom:1px solid #334155}
+    #tools-menu button{border:1px solid #475569;background:#334155;color:#fff;border-radius:6px;padding:6px 10px;font-size:12px;font-weight:700;cursor:pointer}
+    #tools-menu button:hover{background:#475569} #tools-menu button:disabled{opacity:.45;cursor:not-allowed}
+    #tools-spacer{flex:1}
+    #data-health{font-size:11px;color:#cbd5e1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:42vw}
+
+    #header{position:fixed;top:44px;left:0;right:0;height:122px;background:linear-gradient(110deg,#173e76,#1e4f91);z-index:1150;color:#fff;box-shadow:var(--shadow);padding:10px 14px;display:grid;grid-template-columns:minmax(330px,1.15fr) minmax(520px,2fr);gap:14px;align-items:center}
+    #header-main{min-width:0}.eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#bfdbfe;font-weight:800;margin-bottom:3px}
+    #page-title{margin:0 0 7px;font-size:21px;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    #event-select{width:100%;padding:8px 10px;border-radius:6px;border:1px solid #93c5fd;background:#fff;color:#0f172a;font-weight:650;font-size:12px;outline:none}
+    #event-submeta{margin-top:5px;font-size:11px;color:#dbeafe;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    #summary-strip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+    .summary-card{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);border-radius:8px;padding:8px 9px;min-height:74px;backdrop-filter:blur(3px)}
+    .summary-label{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:#dbeafe;font-weight:800}.summary-value{font-size:21px;font-weight:800;margin-top:2px}.summary-sub{font-size:10px;color:#dbeafe;margin-top:2px;line-height:1.25}
+
+    #workspace{position:fixed;top:166px;bottom:128px;left:0;right:0;display:grid;grid-template-columns:340px minmax(0,1fr)}
+    #sidebar{background:#f8fafc;border-right:1px solid var(--border);overflow:auto;padding:10px;z-index:700}
+    .panel{background:#fff;border:1px solid #dbe3ee;border-radius:9px;margin-bottom:9px;box-shadow:0 1px 3px rgba(15,23,42,.05)}
+    .panel-title{display:flex;align-items:center;justify-content:space-between;padding:9px 10px;border-bottom:1px solid #e2e8f0;font-size:12px;font-weight:800}.panel-body{padding:9px 10px}
+    .filter-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}.filter-grid label{font-size:10px;color:var(--muted);font-weight:800;text-transform:uppercase}.filter-grid select{width:100%;margin-top:3px;border:1px solid var(--border);border-radius:6px;padding:6px;background:#fff;font-size:12px}
+    #area-list{display:flex;flex-direction:column;gap:6px}.area-card{border:1px solid #e2e8f0;border-left:5px solid var(--nodata);border-radius:7px;padding:7px 8px;background:#fff;cursor:pointer}.area-card:hover{background:#f8fafc}.area-card.met{border-left-color:var(--met)}.area-card.not_met{border-left-color:var(--not)}.area-card.indeterminate{border-left-color:var(--ind)}.area-card.no_data{border-left-color:var(--nodata)}
+    .area-top{display:flex;justify-content:space-between;gap:8px;align-items:center}.area-name{font-size:12px;font-weight:800}.status-pill{font-size:9px;font-weight:900;padding:3px 5px;border-radius:999px;color:#fff;white-space:nowrap}.status-pill.met{background:var(--met)}.status-pill.not_met{background:var(--not)}.status-pill.indeterminate{background:var(--ind)}.status-pill.no_data{background:var(--nodata)}
+    .area-meta{font-size:10px;color:var(--muted);margin-top:4px;line-height:1.3}
+    #map{width:100%;height:100%}.leaflet-container{background:#dbeafe}.leaflet-control-layers{font-size:11px}
+    .station-label{background:rgba(15,23,42,.9)!important;color:#fff!important;border:1px solid rgba(255,255,255,.55)!important;border-radius:4px!important;font-size:10px!important;font-weight:800!important;padding:2px 5px!important;box-shadow:0 1px 5px rgba(0,0,0,.3)!important;white-space:nowrap}.station-label:before{display:none!important}
+    .popup-title{font-weight:850;font-size:14px;color:#173e76;margin-bottom:6px}.popup-table{border-collapse:collapse;width:100%;font-size:11px}.popup-table td{padding:4px 5px;border-bottom:1px solid #eef2f7;vertical-align:top}.popup-table td:first-child{font-weight:750;color:#475569;white-space:nowrap;width:43%}
+
+    #timeline{position:fixed;left:0;right:0;bottom:0;height:128px;background:#fff;border-top:1px solid var(--border);z-index:1100;box-shadow:0 -3px 12px rgba(15,23,42,.10);padding:7px 12px;display:grid;grid-template-columns:190px minmax(0,1fr);gap:12px}
+    #timeline-summary{border-right:1px solid #e2e8f0;padding-right:10px}.timeline-title{font-size:11px;font-weight:850}.timeline-time{font-size:16px;font-weight:850;margin:3px 0}.timeline-kpi{font-size:10px;color:var(--muted);line-height:1.4}
+    #timeline-main{min-width:0}.timeline-controls{display:flex;gap:8px;align-items:center;margin-bottom:4px}.timeline-controls button{font-size:10px;border:1px solid var(--border);background:#f8fafc;border-radius:5px;padding:4px 7px;cursor:pointer}.timeline-controls button.active{background:#1d4ed8;color:#fff;border-color:#1d4ed8}
+    #time-slider{width:100%;margin:3px 0}.criterion-row{display:grid;grid-template-columns:90px minmax(0,1fr) 80px;align-items:center;gap:7px;margin:2px 0;font-size:9px}.criterion-label{font-weight:750;color:#475569}.criterion-strip{height:8px;display:flex;gap:1px;background:#e2e8f0;border-radius:2px;overflow:hidden}.criterion-seg{flex:1;background:#e2e8f0}.criterion-seg.on{background:#2563eb}.criterion-count{text-align:right;color:var(--muted)}
+
+    #loadingOverlay{display:none;position:fixed;inset:0;background:rgba(15,23,42,.75);z-index:5000;color:#fff;align-items:center;justify-content:center;flex-direction:column;backdrop-filter:blur(3px)}#loadingOverlay.active{display:flex}.spinner{width:42px;height:42px;border:4px solid rgba(255,255,255,.25);border-top-color:#38bdf8;border-radius:50%;animation:spin .8s linear infinite;margin-bottom:12px}@keyframes spin{to{transform:rotate(360deg)}}#loadingText{font-weight:800}#loadingSubtext{font-size:12px;opacity:.8;margin-top:4px}
+    #toast{display:none;position:fixed;top:176px;right:12px;z-index:3000;background:#fff;border-left:4px solid #d97706;border-radius:7px;padding:9px 12px;box-shadow:var(--shadow);font-size:11px;max-width:430px}#toast.active{display:block}
+
+    .modal-overlay{display:none;position:fixed;inset:0;background:rgba(15,23,42,.66);z-index:6000;align-items:center;justify-content:center;padding:20px}.modal-overlay.active{display:flex}.modal{background:#fff;border-radius:10px;box-shadow:0 20px 60px rgba(0,0,0,.28);width:min(920px,96vw);max-height:86vh;overflow:auto}.modal-head{position:sticky;top:0;background:#fff;padding:12px 14px;border-bottom:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center;z-index:2}.modal-head h3{margin:0;font-size:16px}.modal-head button{border:0;background:#e2e8f0;border-radius:6px;padding:5px 8px;cursor:pointer}.modal-body{padding:12px 14px}.analytics-table{width:100%;border-collapse:collapse;font-size:11px}.analytics-table th,.analytics-table td{padding:6px 7px;border-bottom:1px solid #e2e8f0;text-align:right}.analytics-table th:first-child,.analytics-table td:first-child,.analytics-table th:nth-child(2),.analytics-table td:nth-child(2){text-align:left}.analytics-table th{font-size:10px;text-transform:uppercase;color:#475569;background:#f8fafc;position:sticky;top:47px}
+    .form-row{display:flex;gap:8px}.form-row input{flex:1;padding:7px;border:1px solid var(--border);border-radius:6px}.modal-actions{text-align:right;margin-top:10px}.modal-actions button{padding:7px 12px;border:0;border-radius:6px;cursor:pointer;font-weight:750}.primary{background:#1d4ed8;color:#fff}.secondary{background:#e2e8f0;color:#334155}
+
+    @media(max-width:900px){
+      #header{grid-template-columns:1fr;height:160px}#summary-strip{grid-template-columns:repeat(4,1fr)}#workspace{top:204px;grid-template-columns:0 minmax(0,1fr)}#sidebar{display:none}#timeline{grid-template-columns:130px minmax(0,1fr)}#data-health{display:none}
+    }
+  </style>
+</head>
+<body>
+  <div id="loadingOverlay"><div class="spinner"></div><div id="loadingText">Loading verification data…</div><div id="loadingSubtext">Building event dashboard</div></div>
+  <div id="toast"></div>
+
+  <div id="tools-menu">
+    <button onclick="window.open('https://github.com/mefferso/WWA_verification/actions/workflows/verify.yml','_blank','noopener')">Update data</button>
+    <button onclick="refreshApp(currentEvent&&currentEvent.eventKey)">Refresh dashboard</button>
+    <button onclick="window.open('https://github.com/mefferso/WWA_verification/actions/workflows/test.yml','_blank','noopener')">Test results</button>
+    <button onclick="openAnalytics()">Analytics</button>
+    <div id="tools-spacer"></div><div id="data-health"></div>
+  </div>
+
+  <div id="header">
+    <div id="header-main">
+      <div class="eyebrow">WFO LIX verification</div>
+      <h1 id="page-title">Multi-Hazard Verification</h1>
+      <select id="event-select"><option>Loading events…</option></select>
+      <div id="event-submeta">Loading event metadata…</div>
+    </div>
+    <div id="summary-strip">
+      <div class="summary-card"><div class="summary-label">Warned areas met</div><div class="summary-value" id="sum-areas">—</div><div class="summary-sub" id="sum-areas-sub">—</div></div>
+      <div class="summary-card"><div class="summary-label">Stations met</div><div class="summary-value" id="sum-stations">—</div><div class="summary-sub" id="sum-stations-sub">—</div></div>
+      <div class="summary-card"><div class="summary-label" id="sum-extreme-label">Event extreme</div><div class="summary-value" id="sum-extreme">—</div><div class="summary-sub" id="sum-extreme-sub">—</div></div>
+      <div class="summary-card"><div class="summary-label">Data quality</div><div class="summary-value" id="sum-confidence">—</div><div class="summary-sub" id="sum-confidence-sub">—</div></div>
+    </div>
+  </div>
+
+  <div id="workspace">
+    <aside id="sidebar">
+      <div class="panel">
+        <div class="panel-title">Display filters <span id="visible-station-count">—</span></div>
+        <div class="panel-body filter-grid">
+          <label>Status<select id="filter-status"><option value="ALL">All</option><option value="MET">Met</option><option value="NOT_MET">Not met</option><option value="INDETERMINATE">Indeterminate</option><option value="NO_DATA">No data</option></select></label>
+          <label>Network tier<select id="filter-tier"><option value="ALL">All</option><option>A</option><option>B</option><option>C</option></select></label>
+          <label>Mechanism<select id="filter-by"><option value="ALL">All</option><option value="TEMP">Temperature</option><option value="HEAT_INDEX">Heat index</option><option value="WINDCHILL">Wind chill</option><option value="RFW">RH + wind</option></select></label>
+          <label>State<select id="filter-state"><option value="ALL">All</option><option value="LA">LA</option><option value="MS">MS</option></select></label>
+        </div>
+      </div>
+      <div class="panel"><div class="panel-title">Warned areas <span id="area-count">—</span></div><div class="panel-body"><div id="area-list"></div></div></div>
+      <div class="panel"><div class="panel-title">Methodology</div><div class="panel-body" id="methodology" style="font-size:10px;color:#475569;line-height:1.45">—</div></div>
+    </aside>
+    <main id="map"></main>
+  </div>
+
+  <div id="timeline">
+    <div id="timeline-summary">
+      <div class="timeline-title">Event timeline</div><div class="timeline-time" id="timeline-time">Summary view</div>
+      <div class="timeline-kpi" id="timeline-kpi">Select timeline mode to inspect conditions through the warning.</div>
+    </div>
+    <div id="timeline-main">
+      <div class="timeline-controls"><button id="timeline-summary-btn" class="active" onclick="setTimelineMode(false)">Summary</button><button id="timeline-live-btn" onclick="setTimelineMode(true)">Timeline</button><span style="font-size:9px;color:#64748b">5-minute bins; station observations remain at their native times</span></div>
+      <input type="range" id="time-slider" min="0" max="0" value="0" disabled>
+      <div id="criterion-rows"></div>
+    </div>
+  </div>
+
+  <div id="analytics-modal" class="modal-overlay"><div class="modal"><div class="modal-head"><h3>Historical verification analytics</h3><button onclick="closeModal('analytics-modal')">✕</button></div><div class="modal-body" id="analytics-body"></div></div></div>
+  <div id="area-modal" class="modal-overlay"><div class="modal" style="width:min(650px,95vw)"><div class="modal-head"><h3 id="area-modal-title">Area details</h3><button onclick="closeModal('area-modal')">✕</button></div><div class="modal-body" id="area-modal-body"></div></div></div>
+
+<script>
+  const COUNTY_SOURCE_URL = "https://services.arcgis.com/P3ePLMYs2RVChkJx/ArcGIS/rest/services/USA_Counties_Generalized_Boundaries/FeatureServer/0/query" +
+    "?where=" + encodeURIComponent("STATE_ABBR IN ('LA','MS')") + "&outFields=" + encodeURIComponent("NAME,STATE_ABBR,FIPS") + "&returnGeometry=true&f=geojson";
+
+  const map = L.map('map',{zoomControl:true,preferCanvas:true}).setView([30.7,-90.0],7);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'&copy; OpenStreetMap contributors',maxZoom:18}).addTo(map);
+  map.createPane('contextPane'); map.getPane('contextPane').style.zIndex=320;
+  map.createPane('warningPane'); map.getPane('warningPane').style.zIndex=380;
+  map.createPane('stationPane'); map.getPane('stationPane').style.zIndex=450;
+
+  const contextLayer=L.layerGroup().addTo(map), warningLayer=L.layerGroup().addTo(map), stationLayer=L.layerGroup().addTo(map);
+  L.control.layers(null,{"County/parish boundaries":contextLayer,"Warned UGC verification":warningLayer,"Stations":stationLayer},{collapsed:false,position:'bottomright'}).addTo(map);
+
+  let payload={events:[],rows:[],areas:{},areaVerification:[],analytics:[]};
+  let eventMap={}, currentEvent=null, currentRows=[], currentAreaVerification=[], countyGeoJson=null;
+  let markerRegistry={}, timelineData={samples:[]}, timelineBuckets=[], timelineMode=false, activeAreaLayers={};
+  let footprintLoaded={}, footprintRequestToken=0;
+  let eventRequestToken=0;
+
+  const eventSelect=document.getElementById('event-select');
+  const filters=['filter-status','filter-tier','filter-by','filter-state'].map(id=>document.getElementById(id));
+  filters.forEach(x=>x.addEventListener('change',()=>renderStations()));
+  eventSelect.addEventListener('change',()=>renderEvent(eventSelect.value));
+  document.getElementById('time-slider').addEventListener('input',e=>renderTimelineIndex(Number(e.target.value)));
+  map.on('zoomend',updateStationLabels);
+
+  function showLoading(main,sub='Working…'){document.getElementById('loadingText').textContent=main;document.getElementById('loadingSubtext').textContent=sub;document.getElementById('loadingOverlay').classList.add('active');toggleTools(true)}
+  function hideLoading(){document.getElementById('loadingOverlay').classList.remove('active');toggleTools(false)}
+  function toggleTools(disabled){document.querySelectorAll('#tools-menu button').forEach(b=>b.disabled=disabled)}
+  function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('active');clearTimeout(toast._timer);toast._timer=setTimeout(()=>t.classList.remove('active'),7000)}
+  function closeModal(id){document.getElementById(id).classList.remove('active')}
+
+  async function refreshApp(selectKey=null){
+    showLoading('Refreshing verification dashboard…','Loading the event index');WwaData.clear();
+    try{const data=await WwaData.getIndex();initializePayload({...data,rows:[],areas:{},areaVerification:[]},selectKey)}
+    catch(err){hideLoading();toast('Load failed: '+errorMessage(err))}
+  }
+
+  function initializePayload(data,selectKey=null){
+    payload=data||{events:[],rows:[],areas:{},areaVerification:[],analytics:[]};
+    footprintLoaded={};
+    eventMap={};(payload.events||[]).forEach(e=>eventMap[e.eventKey]=e);
+    eventSelect.innerHTML='';
+    const events=(payload.events||[]).slice().sort((a,b)=>String(b.issueUtc).localeCompare(String(a.issueUtc)));
+    if(!events.length){hideLoading();eventSelect.innerHTML='<option>No events</option>';toast('No verification events found. Use Update data to run verification in GitHub.');return}
+    events.forEach(ev=>{const o=document.createElement('option');o.value=ev.eventKey;o.textContent=formatEventLabel(ev);eventSelect.appendChild(o)});
+    const key=selectKey&&eventMap[selectKey]?selectKey:events[0].eventKey; eventSelect.value=key;
+    renderEvent(key);
+  }
+
+  async function renderEvent(eventKey){
+    const token=++eventRequestToken;currentEvent=eventMap[eventKey];if(!currentEvent)return;
+    showLoading('Loading selected warning…','Reading event stations and area verification');
+    try{
+      const selected=await WwaData.getEventPayload(eventKey);if(token!==eventRequestToken)return;
+      currentRows=selected.rows||[];currentAreaVerification=selected.areaVerification||[];
+      payload.areas=payload.areas||{};if(!footprintLoaded[eventKey])payload.areas[eventKey]=(selected.areas&&selected.areas[eventKey])||[];
+      currentEvent={...currentEvent,...selected.events[0]};eventMap[eventKey]=currentEvent;
+      timelineMode=false;timelineData={samples:[]};timelineBuckets=[];setTimelineButtons();
+      hideLoading();updateHeader();renderWarnedAreas();renderStations();renderAreaList();loadTimeline(eventKey);fitEventBounds();loadEventFootprint(eventKey);
+    }catch(err){if(token!==eventRequestToken)return;hideLoading();toast('Event load failed: '+errorMessage(err))}
+  }
+
+  async function loadEventFootprint(eventKey){
+    if(footprintLoaded[eventKey])return;const token=++footprintRequestToken;
+    try{
+      const data=await WwaData.getFootprint(eventKey);if(token!==footprintRequestToken||!currentEvent||currentEvent.eventKey!==eventKey)return;
+      payload.areas[eventKey]=data.areas||[];footprintLoaded[eventKey]=true;renderWarnedAreas();fitEventBounds();if(data.warning)toast('Warning footprint: '+data.warning);
+    }catch(err){if(token===footprintRequestToken&&currentEvent&&currentEvent.eventKey===eventKey)toast('Warning footprint failed: '+errorMessage(err))}
+  }
+
+  function updateHeader(){
+    const e=currentEvent,s=e.summary||{},ac=s.areaCounts||{},sc=s.stationCounts||{};
+    document.getElementById('page-title').textContent=e.productLabel||'Multi-Hazard Verification';
+    document.getElementById('event-submeta').textContent=`${e.hazard} #${e.eventId} • ${formatRange(e.issueUtc,e.expireUtc)} • ${e.warnedUgcs||'footprint unavailable'}`;
+    document.getElementById('sum-areas').textContent=`${ac.MET||0}/${s.totalAreas||0}`;
+    document.getElementById('sum-areas-sub').textContent=`${ac.NOT_MET||0} not met • ${ac.INDETERMINATE||0} indeterminate • ${ac.NO_DATA||0} no data`;
+    document.getElementById('sum-stations').textContent=`${sc.MET||0}/${s.totalStations||0}`;
+    document.getElementById('sum-stations-sub').textContent=`${sc.NOT_MET||0} not met • ${sc.INDETERMINATE||0} indeterminate`;
+    let label='Event extreme',value='—',sub='—';
+    if(e.hazard==='EH'){label='Maximum heat';value=nfmt(s.maxHeatIndex,0,'°F');sub=`HI at ${s.maxHeatIndexStation||'—'} • max T ${nfmt(s.maxTemp,0,'°F')}`}
+    else if(e.hazard==='EC'){label='Minimum cold';value=nfmt(s.minWindChill,0,'°F');sub=`Wind chill at ${s.minWindChillStation||'—'} • min T ${nfmt(s.minTemp,0,'°F')}`}
+    else if(e.hazard==='RFW'){label='Fire-weather extreme';value=nfmt(s.lowestRh,0,'% RH');sub=`Peak sustained wind ${nfmt(s.highestWind,0,' mph')}`}
+    document.getElementById('sum-extreme-label').textContent=label;document.getElementById('sum-extreme').textContent=value;document.getElementById('sum-extreme-sub').textContent=sub;
+    const areaConf=currentAreaVerification.map(a=>String(a.CONFIDENCE||'LOW'));const high=areaConf.filter(x=>x==='HIGH').length,med=areaConf.filter(x=>x==='MEDIUM').length;
+    document.getElementById('sum-confidence').textContent=high?'HIGH':med?'MEDIUM':'LOW';
+    document.getElementById('sum-confidence-sub').textContent=`${high} high-confidence areas • ${med} medium`;
+    const fallback=/fallback|unresolved/i.test((e.footprintSource||'')+' '+(e.areaTimingMode||''));
+    const partial=e.dataComplete===false;
+    document.getElementById('data-health').textContent=partial?'⚠ Incomplete or imported data: '+(e.runNote||'one or more fetches failed'):(fallback?'⚠ '+e.areaTimingMode:'✓ Actual IEM VTEC footprint loaded');
+    document.getElementById('methodology').innerHTML=`<b>Footprint:</b> ${esc(e.footprintSource||'—')}<br><b>Timing:</b> ${esc(e.areaTimingMode||'—')}<br><b>Area status:</b> one station meeting criteria establishes MET; confidence is reported separately; inadequate coverage becomes INDETERMINATE rather than a false non-verification.${e.hazard==='RFW'?'<br><b>RFW:</b> status is meteorological criteria only; fuels/KBDI and land-manager coordination are not inferred.':''}`;
+    if(partial)toast('This event has a partial observation run. Check the event data and GitHub run log before using it operationally.'); else if(fallback)toast('This event used a documented IEM footprint/timing fallback. Check the event metadata before treating area timing as exact.');
+  }
+
+  function renderWarnedAreas(){
+    warningLayer.clearLayers();activeAreaLayers={};
+    const features=(payload.areas&&payload.areas[currentEvent.eventKey])||[];
+    const verifyMap={};currentAreaVerification.forEach(a=>verifyMap[String(a.UGC||'')]=a);
+    features.forEach(a=>{
+      if(!a.geometry)return;
+      const v=verifyMap[a.ugc]||{VERIFY_STATUS:'NO_DATA',AREA_LABEL:a.ugc,CONFIDENCE:'LOW'};
+      const feature={type:'Feature',properties:{ugc:a.ugc},geometry:a.geometry};
+      const layer=L.geoJSON(feature,{pane:'warningPane',style:()=>areaStyle(v.VERIFY_STATUS)}).addTo(warningLayer);
+      layer.bindPopup(buildAreaPopup(v,a));
+      layer.on('click',()=>openAreaDetails(a.ugc));
+      activeAreaLayers[a.ugc]=layer;
+    });
+  }
+
+  function areaStyle(status){
+    const s=String(status||'NO_DATA');
+    const colors={MET:'#15803d',NOT_MET:'#b91c1c',INDETERMINATE:'#d97706',NO_DATA:'#64748b'};
+    return {color:colors[s]||colors.NO_DATA,weight:2.2,opacity:.95,fillColor:colors[s]||colors.NO_DATA,fillOpacity:.20};
+  }
+
+  function renderStations(){
+    stationLayer.clearLayers();markerRegistry={};
+    const status=document.getElementById('filter-status').value,tier=document.getElementById('filter-tier').value,by=document.getElementById('filter-by').value,state=document.getElementById('filter-state').value;
+    let visible=0;
+    currentRows.forEach(row=>{
+      if(status!=='ALL'&&String(row.VERIFY_STATUS)!==status)return;
+      if(tier!=='ALL'&&String(row.NETWORK_TIER)!==tier)return;
+      if(state!=='ALL'&&String(row.STATE)!==state)return;
+      if(by!=='ALL'&&!matchesMechanism(row,by))return;
+      const lat=validNum(row.LATITUDE),lon=validNum(row.LONGITUDE);if(lat===null||lon===null)return;
+      const m=L.circleMarker([lat,lon],{pane:'stationPane',...stationStyle(row)}).addTo(stationLayer);
+      m.bindPopup(buildStationPopup(row));markerRegistry[String(row.STID)]={marker:m,row};visible++;
+    });
+    document.getElementById('visible-station-count').textContent=`${visible} visible`;
+    updateStationLabels();
+    if(timelineMode&&timelineBuckets.length)renderTimelineIndex(Number(document.getElementById('time-slider').value));
+  }
+
+  function stationStyle(row){
+    const s=String(row.VERIFY_STATUS||'NO_DATA'),tier=String(row.NETWORK_TIER||'C');
+    const colors={MET:'#15803d',NOT_MET:'#b91c1c',INDETERMINATE:'#d97706',NO_DATA:'#64748b'};
+    return {radius:tier==='A'?8:tier==='B'?7:6,color:'#111827',weight:tier==='A'?2:1,fillColor:colors[s]||colors.NO_DATA,fillOpacity:s==='NO_DATA'?.25:.88,dashArray:s==='INDETERMINATE'?'3 2':null};
+  }
+
+  function matchesMechanism(row,by){const x=String(row.EXCEEDED_BY||'');if(by==='RFW')return x.includes('RH_AND');if(by==='WINDCHILL')return x.includes('WINDCHILL')||x==='BOTH';if(by==='HEAT_INDEX')return x.includes('HEAT_INDEX')||x==='BOTH';if(by==='TEMP')return x==='TEMP'||x==='BOTH';return true}
+
+  function updateStationLabels(){
+    const show=map.getZoom()>=9&&!timelineMode;
+    Object.values(markerRegistry).forEach(({marker,row})=>{marker.unbindTooltip();if(show){const txt=primarySummaryLabel(row);if(txt)marker.bindTooltip(txt,{permanent:true,direction:'right',className:'station-label',offset:[9,0]})}})
+  }
+
+  function primarySummaryLabel(r){if(currentEvent.hazard==='EH')return validNum(r.MAX_HEAT_INDEX_F)!=null?Math.round(r.MAX_HEAT_INDEX_F)+'°':validNum(r.MAX_TEMP_F)!=null?Math.round(r.MAX_TEMP_F)+'°':'';if(currentEvent.hazard==='EC')return validNum(r.MIN_WINDCHILL_F)!=null?Math.round(r.MIN_WINDCHILL_F)+'°':validNum(r.MIN_TEMP_F)!=null?Math.round(r.MIN_TEMP_F)+'°':'';if(currentEvent.hazard==='RFW'){const rh=validNum(r.MIN_RH_PCT),w=validNum(r.MAX_WIND_MPH);return rh!=null&&w!=null?`${Math.round(w)} mph / ${Math.round(rh)}%`:''}return''}
+
+  function renderAreaList(){
+    const el=document.getElementById('area-list');el.innerHTML='';
+    const sorted=currentAreaVerification.slice().sort((a,b)=>statusRank(a.VERIFY_STATUS)-statusRank(b.VERIFY_STATUS)||String(a.AREA_LABEL||a.UGC).localeCompare(String(b.AREA_LABEL||b.UGC)));
+    document.getElementById('area-count').textContent=sorted.length;
+    sorted.forEach(a=>{
+      const d=document.createElement('div'),s=String(a.VERIFY_STATUS||'NO_DATA');d.className='area-card '+s.toLowerCase();
+      d.innerHTML=`<div class="area-top"><div class="area-name">${esc(a.AREA_LABEL||a.UGC)} <span style="color:#94a3b8;font-weight:600">${esc(a.UGC||'')}</span></div><span class="status-pill ${s.toLowerCase()}">${prettyStatus(s)}</span></div><div class="area-meta">${a.MET_STATION_COUNT||0}/${a.STATION_COUNT||0} stations met • ${esc(a.CONFIDENCE||'LOW')} confidence • avg coverage ${nfmt(a.AVG_COVERAGE_PCT,0,'%')}</div>`;
+      d.onclick=()=>openAreaDetails(a.UGC);el.appendChild(d);
+    });
+  }
+
+  function openAreaDetails(ugc){
+    const a=currentAreaVerification.find(x=>String(x.UGC)===String(ugc));if(!a)return;
+    const rows=currentRows.filter(r=>String(r.AREA_UGC||r.NWSZONE)===String(ugc)).sort((x,y)=>statusRank(x.VERIFY_STATUS)-statusRank(y.VERIFY_STATUS));
+    document.getElementById('area-modal-title').textContent=`${a.AREA_LABEL||ugc} — ${prettyStatus(a.VERIFY_STATUS)}`;
+    let extreme='';
+    if(currentEvent.hazard==='EH')extreme=`Highest HI <b>${nfmt(a.HOTTEST_HEAT_INDEX_F,1,' °F')}</b> • Highest T <b>${nfmt(a.HOTTEST_TEMP_F,1,' °F')}</b>`;
+    else if(currentEvent.hazard==='EC')extreme=`Lowest WC <b>${nfmt(a.WORST_WINDCHILL_F,1,' °F')}</b> • Lowest T <b>${nfmt(a.WORST_TEMP_F,1,' °F')}</b>`;
+    else extreme=`Lowest RH <b>${nfmt(a.LOWEST_RH_PCT,1,'%')}</b> • Highest sustained wind <b>${nfmt(a.HIGHEST_WIND_MPH,1,' mph')}</b> • Highest gust <b>${nfmt(a.HIGHEST_GUST_MPH,1,' mph')}</b>`;
+    let html=`<div style="font-size:12px;margin-bottom:10px"><b>${esc(a.UGC)}</b> • ${esc(a.CONFIDENCE||'LOW')} confidence • ${a.USABLE_STATION_COUNT||0}/${a.STATION_COUNT||0} usable stations<br>${extreme}</div>`;
+    html+=`<table class="analytics-table"><thead><tr><th>Station</th><th>Status</th><th>Tier</th><th>Coverage</th><th>Verified by</th><th>Threshold</th></tr></thead><tbody>`;
+    rows.forEach(r=>html+=`<tr><td>${esc(r.STID)} — ${esc(r.NAME)}</td><td>${prettyStatus(r.VERIFY_STATUS)}</td><td>${esc(r.NETWORK_TIER||'')}</td><td>${nfmt(r.DATA_COVERAGE_PCT,0,'%')}</td><td>${esc(r.EXCEEDED_BY||'—')}</td><td>${esc(r.THRESHOLD_SUMMARY||'—')}</td></tr>`);
+    html+='</tbody></table>';document.getElementById('area-modal-body').innerHTML=html;document.getElementById('area-modal').classList.add('active');
+  }
+
+  function buildAreaPopup(v,a){return `<div class="popup-title">${esc(v.AREA_LABEL||a.ugc)} (${esc(a.ugc)})</div><table class="popup-table"><tr><td>Status</td><td><b>${prettyStatus(v.VERIFY_STATUS)}</b></td></tr><tr><td>Confidence</td><td>${esc(v.CONFIDENCE||'LOW')}</td></tr><tr><td>Stations met</td><td>${v.MET_STATION_COUNT||0} / ${v.STATION_COUNT||0}</td></tr><tr><td>Coverage</td><td>${nfmt(v.AVG_COVERAGE_PCT,0,'%')}</td></tr><tr><td>Active</td><td>${esc(formatRange(a.startUtc,a.endUtc))}</td></tr></table>`}
+
+  function buildStationPopup(r){
+    let rows='';
+    if(currentEvent.hazard==='EH')rows=`<tr><td>Max temp</td><td>${nfmt(r.MAX_TEMP_F,1,' °F')} @ ${fmtTime(r.MAX_TEMP_TIME_UTC)}</td></tr><tr><td>Max heat index</td><td>${nfmt(r.MAX_HEAT_INDEX_F,1,' °F')} @ ${fmtTime(r.MAX_HEAT_INDEX_TIME_UTC)}</td></tr><tr><td>HI inputs</td><td>T ${nfmt(r.HI_TEMP_F,1,' °F')} • RH ${nfmt(r.HI_RH_PCT,1,'%')} • Td ${nfmt(r.HI_DEWPOINT_F,1,' °F')}</td></tr><tr><td>HI duration</td><td>${durationText(r.HEAT_INDEX_CRITERIA_MAX_CONTINUOUS_MIN)} max continuous</td></tr>`;
+    else if(currentEvent.hazard==='EC')rows=`<tr><td>Min temp</td><td>${nfmt(r.MIN_TEMP_F,1,' °F')} @ ${fmtTime(r.MIN_TEMP_TIME_UTC)}</td></tr><tr><td>Min wind chill</td><td>${nfmt(r.MIN_WINDCHILL_F,1,' °F')} @ ${fmtTime(r.MIN_WINDCHILL_TIME_UTC)}</td></tr><tr><td>WC duration</td><td>${durationText(r.WINDCHILL_CRITERIA_MAX_CONTINUOUS_MIN)} max continuous</td></tr>`;
+    else rows=`<tr><td>Min RH</td><td>${nfmt(r.MIN_RH_PCT,1,'%')} @ ${fmtTime(r.MIN_RH_TIME_UTC)}</td></tr><tr><td>Max sustained wind</td><td>${nfmt(r.MAX_WIND_MPH,1,' mph')} @ ${fmtTime(r.MAX_WIND_TIME_UTC)}</td></tr><tr><td>Max gust</td><td>${nfmt(r.MAX_GUST_MPH,1,' mph')} @ ${fmtTime(r.MAX_GUST_TIME_UTC)}</td></tr><tr><td>First simultaneous met</td><td>${fmtTime(r.RFW_VERIFY_TIME_UTC)}</td></tr><tr><td>RFW duration</td><td>${durationText(r.RFW_CRITERIA_MAX_CONTINUOUS_MIN)} max continuous</td></tr>`;
+    return `<div style="min-width:320px"><div class="popup-title">${esc(r.NAME)} (${esc(r.STID)})</div><table class="popup-table"><tr><td>Status</td><td><b>${prettyStatus(r.VERIFY_STATUS)}</b> • ${esc(r.CONFIDENCE||'LOW')} confidence</td></tr><tr><td>Area</td><td>${esc(r.COUNTY||'—')} • ${esc(r.NWSZONE||'—')}</td></tr><tr><td>Network</td><td>${esc(r.NETWORK_NAME||'—')} • Tier ${esc(r.NETWORK_TIER||'—')}</td></tr><tr><td>Coverage</td><td>${nfmt(r.DATA_COVERAGE_PCT,0,'%')} (${r.OBS_COUNT||0} obs)</td></tr><tr><td>Threshold</td><td>${esc(r.THRESHOLD_SUMMARY||'—')}</td></tr><tr><td>Verified by</td><td>${esc(r.EXCEEDED_BY||'—')}</td></tr>${rows}${r.NOTES?`<tr><td>Note</td><td>${esc(r.NOTES)}</td></tr>`:''}</table></div>`;
+  }
+
+  function fitEventBounds(){
+    const bounds=[];const eventAreas=(payload.areas&&payload.areas[currentEvent.eventKey])||[];
+    eventAreas.forEach(a=>{if(a.geometry){try{const l=L.geoJSON({type:'Feature',geometry:a.geometry,properties:{}});const b=l.getBounds();if(b.isValid()){bounds.push(b.getSouthWest(),b.getNorthEast())}}catch(e){}}});
+    if(!bounds.length)currentRows.forEach(r=>{const lat=validNum(r.LATITUDE),lon=validNum(r.LONGITUDE);if(lat!==null&&lon!==null)bounds.push([lat,lon])});
+    if(bounds.length)map.fitBounds(bounds,{padding:[25,25],maxZoom:10});
+  }
+
+  async function loadTimeline(eventKey){
+    document.getElementById('time-slider').disabled=true;document.getElementById('criterion-rows').innerHTML='<div style="font-size:10px;color:#64748b">Loading event samples…</div>';
+    try{const data=await WwaData.getTimeline(eventKey);if(!currentEvent||currentEvent.eventKey!==eventKey)return;
+      timelineData=data;buildTimelineBuckets();renderCriterionRows();document.getElementById('time-slider').disabled=!timelineBuckets.length;
+    }catch(err){if(!currentEvent||currentEvent.eventKey!==eventKey)return;document.getElementById('criterion-rows').innerHTML='<div style="font-size:10px;color:#b91c1c">Timeline failed: '+esc(errorMessage(err))+'</div>'}
+  }
+
+  function buildTimelineBuckets(){
+    const bucketMs=5*60*1000,mapBuckets={};
+    (timelineData.samples||[]).forEach(s=>{const d=parseUtc(s.TIME_UTC);if(!d)return;const ms=Math.floor(d.getTime()/bucketMs)*bucketMs;if(!mapBuckets[ms])mapBuckets[ms]={ms,stations:{}};mapBuckets[ms].stations[String(s.STID)]=s});
+    timelineBuckets=Object.values(mapBuckets).sort((a,b)=>a.ms-b.ms);
+    const slider=document.getElementById('time-slider');slider.min=0;slider.max=Math.max(0,timelineBuckets.length-1);slider.value=0;
+    document.getElementById('timeline-time').textContent='Summary view';document.getElementById('timeline-kpi').textContent=`${timelineBuckets.length} five-minute bins available`;
+  }
+
+  function setTimelineMode(on){timelineMode=!!on;setTimelineButtons();if(!timelineMode){renderStations();document.getElementById('timeline-time').textContent='Summary view';document.getElementById('timeline-kpi').textContent='Station markers show event extrema and final verification status.';}else if(timelineBuckets.length){renderTimelineIndex(Number(document.getElementById('time-slider').value))}}
+  function setTimelineButtons(){document.getElementById('timeline-summary-btn').classList.toggle('active',!timelineMode);document.getElementById('timeline-live-btn').classList.toggle('active',timelineMode)}
+
+  function renderTimelineIndex(idx){
+    if(!timelineMode||!timelineBuckets.length)return;idx=Math.max(0,Math.min(timelineBuckets.length-1,idx));const b=timelineBuckets[idx];document.getElementById('time-slider').value=idx;
+    document.getElementById('timeline-time').textContent=new Intl.DateTimeFormat('en-US',{month:'numeric',day:'numeric',hour:'numeric',minute:'2-digit',timeZone:'America/Chicago',timeZoneName:'short'}).format(new Date(b.ms));
+    let met=0,total=0;Object.entries(markerRegistry).forEach(([stid,obj])=>{const s=b.stations[stid];obj.marker.unbindTooltip();if(!s){obj.marker.setStyle({fillOpacity:.08,opacity:.35});return}total++;const criteria=sampleMetForHazard(s,currentEvent.hazard);if(criteria)met++;obj.marker.setStyle(criteria?{fillColor:'#15803d',fillOpacity:.9,opacity:1}:{fillColor:'#94a3b8',fillOpacity:.55,opacity:.8});const lab=sampleLabel(s,currentEvent.hazard);if(lab)obj.marker.bindTooltip(lab,{permanent:map.getZoom()>=8,direction:'right',className:'station-label',offset:[9,0]})});
+    document.getElementById('timeline-kpi').textContent=`${met} of ${total} visible stations meeting criteria in this bin`;
+    updateCriterionCountsAt(idx);highlightActiveAreasAtTime(b.ms);
+  }
+
+  function highlightActiveAreasAtTime(ms){
+    const verify={};currentAreaVerification.forEach(v=>verify[v.UGC]=v);
+    const areas=(payload.areas&&payload.areas[currentEvent.eventKey])||[];const active={};areas.forEach(a=>{const s=parseUtc(a.startUtc),e=parseUtc(a.endUtc);if(s&&e&&ms>=s.getTime()&&ms<=e.getTime())active[a.ugc]=true});
+    Object.entries(activeAreaLayers).forEach(([ugc,layer])=>{layer.eachLayer(l=>l.setStyle({...areaStyle((verify[ugc]||{}).VERIFY_STATUS),fillOpacity:active[ugc]?.24:.03,opacity:active[ugc]?1:.25}))})
+  }
+
+  function renderCriterionRows(){
+    const defs=currentEvent.hazard==='EH'?[['TEMP_MET','Temperature'],['HEAT_INDEX_MET','Heat index']]:currentEvent.hazard==='EC'?[['TEMP_MET','Temperature'],['WINDCHILL_MET','Wind chill']]:[['RFW_MET','RH + wind']];
+    const box=document.getElementById('criterion-rows');box.innerHTML='';
+    defs.forEach(([field,label])=>{const counts=timelineBuckets.map(b=>Object.values(b.stations).filter(s=>String(s[field])==='TRUE').length);const row=document.createElement('div');row.className='criterion-row';row.dataset.field=field;row.innerHTML=`<div class="criterion-label">${label}</div><div class="criterion-strip">${counts.map(c=>`<span class="criterion-seg ${c?'on':''}" title="${c} station(s)"></span>`).join('')}</div><div class="criterion-count">max ${Math.max(0,...counts)} stn</div>`;box.appendChild(row)});
+  }
+  function updateCriterionCountsAt(idx){document.querySelectorAll('.criterion-row').forEach(row=>{const field=row.dataset.field,b=timelineBuckets[idx],count=Object.values(b.stations).filter(s=>String(s[field])==='TRUE').length;row.querySelector('.criterion-count').textContent=`${count} stn now`})}
+
+  function sampleMetForHazard(s,h){if(h==='EH')return String(s.HEAT_INDEX_MET)==='TRUE'||String(s.TEMP_MET)==='TRUE';if(h==='EC')return String(s.WINDCHILL_MET)==='TRUE'||String(s.TEMP_MET)==='TRUE';return String(s.RFW_MET)==='TRUE'}
+  function sampleLabel(s,h){if(h==='EH'){const hi=validNum(s.HEAT_INDEX_F),t=validNum(s.TEMP_F);return hi!=null?Math.round(hi)+'° HI':t!=null?Math.round(t)+'°':''}if(h==='EC'){const wc=validNum(s.WIND_CHILL_F),t=validNum(s.TEMP_F);return wc!=null?Math.round(wc)+'° WC':t!=null?Math.round(t)+'°':''}const w=validNum(s.WIND_MPH),rh=validNum(s.RH_PCT);return w!=null&&rh!=null?`${Math.round(w)} mph / ${Math.round(rh)}%`:''}
+
+  function openAnalytics(){
+    const rows=(payload.analytics||[]);let html='<p style="font-size:11px;color:#64748b">Available imported and computed history. Incomplete events are shown explicitly. Area counts distinguish actual observational non-verification from indeterminate/no-data cases.</p>';
+    html+='<table class="analytics-table"><thead><tr><th>Year</th><th>Hazard</th><th>Events</th><th>Areas</th><th>Met</th><th>Not met</th><th>Indeterminate</th><th>No data</th><th>Met %*</th><th>Incomplete events</th></tr></thead><tbody>';
+    rows.forEach(r=>{const denom=(r.met||0)+(r.notMet||0),pct=denom?100*(r.met||0)/denom:null;html+=`<tr><td>${r.year}</td><td>${esc(r.hazard)}</td><td>${r.events}</td><td>${r.areas}</td><td>${r.met}</td><td>${r.notMet}</td><td>${r.indeterminate}</td><td>${r.noData}</td><td>${pct==null?'—':pct.toFixed(0)+'%'}</td><td>${r.incompleteEvents||0}</td></tr>`});
+    html+='</tbody></table><div style="font-size:9px;color:#64748b;margin-top:6px">*Met % excludes indeterminate and no-data areas instead of pretending missing observations are failures.</div>';
+    document.getElementById('analytics-body').innerHTML=html;document.getElementById('analytics-modal').classList.add('active');
+  }
+
+  function loadCountyContext(){fetch(COUNTY_SOURCE_URL).then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.json()}).then(g=>{countyGeoJson=g;L.geoJSON(g,{pane:'contextPane',style:{color:'#64748b',weight:.8,opacity:.55,fill:false,interactive:false}}).addTo(contextLayer)}).catch(()=>toast('County/parish context layer failed to load; warned IEM geometry and station results are unaffected.'))}
+
+  function parseUtc(v){if(!v)return null;const d=new Date(String(v).replace(' UTC','Z').replace(' ','T'));return Number.isNaN(d.getTime())?null:d}
+  function fmtTime(v){const d=parseUtc(v);return d?new Intl.DateTimeFormat('en-US',{month:'numeric',day:'numeric',hour:'numeric',minute:'2-digit',timeZone:'America/Chicago',timeZoneName:'short'}).format(d):'—'}
+  function formatRange(a,b){return `${fmtTime(a)} – ${fmtTime(b)}`}
+  function formatEventLabel(e){return `${e.year} • ${e.hazard} #${e.eventId} • ${e.productLabel} • ${fmtTime(e.issueUtc)}`}
+  function prettyStatus(s){return String(s||'NO_DATA').replace('_',' ').toLowerCase().replace(/\b\w/g,c=>c.toUpperCase())}
+  function statusRank(s){return({MET:0,NOT_MET:1,INDETERMINATE:2,NO_DATA:3})[String(s)]??4}
+  function validNum(v){if(v===null||v===undefined||v==='')return null;const n=Number(v);return Number.isFinite(n)?n:null}
+  function nfmt(v,d=1,suffix=''){const n=validNum(v);return n==null?'—':n.toFixed(d)+suffix}
+  function durationText(v){const n=validNum(v);if(n==null)return'—';if(n<60)return`${Math.round(n)} min`;return`${Math.floor(n/60)}h ${Math.round(n%60)}m`}
+  function esc(v){return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;')}
+  function errorMessage(err){return err&&err.message?err.message:String(err||'Unknown error')}
+
+  loadCountyContext();
+  refreshApp();
+</script>
+</body>
+</html>

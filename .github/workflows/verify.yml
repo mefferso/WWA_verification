@@ -1,0 +1,82 @@
+name: Verify warning events
+on:
+  schedule:
+    - cron: '17 11 * * *'
+  workflow_dispatch:
+    inputs:
+      year:
+        description: 'Four-digit VTEC year'
+        required: true
+        default: '2026'
+      month:
+        description: 'Month 1–12 (ignored when Annual is selected)'
+        required: true
+        default: '8'
+      annual:
+        description: 'Process the entire year'
+        type: boolean
+        default: false
+      force:
+        description: 'Refetch completed cached events'
+        type: boolean
+        default: false
+      limit:
+        description: 'Maximum fresh events this run; 0 means all. Rerun to continue.'
+        default: '0'
+permissions:
+  contents: write
+concurrency:
+  group: wwa-data-writer
+  cancel-in-progress: false
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm test
+      - run: npm run check
+      - name: Run verification
+        id: verify
+        continue-on-error: true
+        env:
+          SYNOPTIC_API_TOKEN: ${{ secrets.SYNOPTIC_API_TOKEN }}
+          RUN_EVENT: ${{ github.event_name }}
+          RUN_YEAR: ${{ inputs.year }}
+          RUN_MONTH: ${{ inputs.month }}
+          RUN_ANNUAL: ${{ inputs.annual }}
+          RUN_FORCE: ${{ inputs.force }}
+          RUN_LIMIT: ${{ inputs.limit }}
+        run: |
+          args=()
+          if [[ "$RUN_EVENT" == "schedule" ]]; then
+            args+=(--recent)
+          else
+            args+=(--year "$RUN_YEAR" --limit "${RUN_LIMIT:-0}")
+            if [[ "$RUN_ANNUAL" == "true" ]]; then args+=(--annual); else args+=(--month "$RUN_MONTH"); fi
+            if [[ "$RUN_FORCE" == "true" ]]; then args+=(--force); fi
+          fi
+          node scripts/verify.cjs "${args[@]}"
+      - name: Validate rebuilt website
+        run: npm run build
+      - name: Commit completed event checkpoints
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add data/
+          if ! git diff --cached --quiet; then
+            git commit -m 'Update WWA event snapshots and run status'
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
+      - name: Fail visibly if any provider request failed
+        if: steps.verify.outcome == 'failure'
+        run: |
+          echo 'Verification failed or was partial. Completed event checkpoints were retained; inspect the run log and last-run report.'
+          exit 1

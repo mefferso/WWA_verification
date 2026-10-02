@@ -41,3 +41,22 @@ Evidence: the two uploaded source files and **all tabs** in `Cold_Hot_verificati
 9. **Deployment validation:** Script ID, live manifest, access audience, execute-as setting, and deployment ID were absent. They were not guessed. No live Sheet edits, Apps Script push, API smoke test, or web-app deployment occurred as part of this repository migration.
 
 These items are documented rather than hidden behind a wholesale rewrite. The supplied meteorological thresholds, sheet names/columns, public Apps Script entry points, and Leaflet interface remain the project baseline.
+
+## Subsequent authorized GitHub-only migration
+
+The user explicitly replaced the Google runtime requirement. The second supplied workbook `Cold_Hot_verification(1).xlsx` was inspected before import and preserved the same 38 thresholds, 14 events, 1,754 station aggregates, and 55,217 native samples. The initial Apps Script audit above is retained as historical evidence; its Google-specific remaining-work items do not describe the current deployment.
+
+The new runtime ports the reviewed scientific core into Node rather than inventing a new warning policy. GitHub Actions handles ingestion, repository gzip files replace Sheets, and Pages publishes the existing Leaflet interface. Secrets and raw logs were excluded. Imported incomplete/stale derived tables are regenerated from native samples; original raw station aggregates and legacy minima remain preserved.
+
+Current fixes superseding earlier limitations:
+
+- Hazard-variable coverage replaces any-variable coverage, including the implicit cold wind-chill alternative.
+- Every publication reaggregates samples under current thresholds, duration/gap settings, and sustained/gust policy. Original QC provenance is preserved.
+- Cache reuse requires validated completion, config/metadata/timing fingerprint, nonempty samples, and computation after expiration plus a one-hour settling delay. Active snapshots cannot freeze a partial event permanently.
+- Atomic event files replace non-atomic Sheet writes. Failed fresh provider requests keep old snapshots. Independent completed events publish after partial run failures.
+- A 45-minute soft budget exits early enough to commit completed checkpoints before the workflow's 60-minute limit; deferred events resume on a repeated non-force run.
+- Separate lazy-loaded per-event timeline/footprint files replace whole-Sheet scans. Revisiting an event preserves geometry. Analytics count all archived events and flag incomplete history.
+
+Remaining limitations: exact metadata forecast-zone membership (no county-zone/point crosswalk or historical boundary reconstruction), incomplete VTEC action lifecycle timing, original QC-off policy, first preferred sensor selection, optional public IEM footprint fallback for imported missing geometry, growing gzip Git history, memory usage for large event/archive builds, and possible lost uncommitted progress on hard cancellation. None is hidden by a complete-history claim. Initial live provider refresh and Pages activation require the GitHub repository secret and Pages setting; no live provider requests, connected Sheet edits, or Google deployments were made during migration.
+
+Validation includes the ported meteorological tests, import/schema retention checks, provider error redaction, actual warned-area joins, duration/zero handling, active-cache regression, fallback wind-chill coverage, changed RFW policy reaggregation, previous snapshot retention, budget deferral, polygon revisits, and partial-run publication eligibility. Browser source parses and builds; a full browser visual run was unavailable because this environment has no installed Chromium binary.

@@ -1,6 +1,6 @@
 const {test}=require('node:test');
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
-const c=vm.createContext({});vm.runInContext(fs.readFileSync('Code.gs','utf8'),c);
+const c=vm.createContext({});vm.runInContext(fs.readFileSync('legacy/apps-script/Code.gs','utf8'),c);
 const snapshot=JSON.parse(fs.readFileSync('docs/workbook-schema.json','utf8'));
 test('Documented export headers match every backend runtime schema',()=>{
  const names={Stations:'STATION_HEADERS',Events:'EVENT_HEADERS',EventAreas:'EVENT_AREA_HEADERS',_EventObs:'EVENT_OBS_HEADERS',_ObsSamples:'SAMPLE_HEADERS',Results:'RESULT_HEADERS',AreaVerification:'AREA_VERIFY_HEADERS'};

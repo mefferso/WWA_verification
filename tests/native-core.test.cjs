@@ -2,8 +2,7 @@ const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const vm=require('node:vm');
-const c=vm.createContext({Date,console});
-vm.runInContext(fs.readFileSync('legacy/apps-script/Code.gs','utf8'),c);
+const c=require('../src/core.cjs');
 const rule=(threshold,comparator,durationHours=null)=>({threshold,comparator,durationHours});
 const cfg={_rfwWindBasis:'sustained',_minCoveragePct:50,_tierAIds:{},_tierBIds:{}};
 test('Heat Index uses NWS regression and humidity adjustments',()=>{
@@ -76,23 +75,6 @@ test('Missing hazard metrics cannot establish NOT_MET from unrelated wind covera
 });
 test('Unchecked QC cannot produce high confidence',()=>{
  assert.equal(c.stationConfidence_({NETWORK_TIER:'A',DATA_COVERAGE_PCT:100,QC_POLICY:'off'},'MET',cfg),'LOW');
-});
-test('Completed cache requires matching footprint and calculation fingerprint',()=>{
- const event={eventKey:'k',expireUtc:'2020-01-01T01:00Z',warnedUgcs:['LAZ079'],cacheFingerprint:'abc'};
- const cache={events:{k:{DATA_COMPLETE:'TRUE',EXPIRE_UTC:event.expireUtc,WARNED_UGCS:'LAZ080',RUN_NOTE:'[cache:abc]'}},obs:{k:[[]]}};
- assert.equal(c.shouldReuseCompletedEvent_(event,cache,cfg),false);
- cache.events.k.WARNED_UGCS='LAZ079';cache.events.k.RUN_NOTE='legacy';
- assert.equal(c.shouldReuseCompletedEvent_(event,cache,cfg),false);
- cache.events.k.RUN_NOTE='[cache:abc]';assert.equal(c.shouldReuseCompletedEvent_(event,cache,cfg),true);
-});
-test('Synoptic HTTP 200 authentication errors are not treated as empty observations',()=>{
- c.UrlFetchApp={fetch:()=>({getResponseCode:()=>200,getContentText:()=>JSON.stringify({SUMMARY:{RESPONSE_CODE:200,RESPONSE_MESSAGE:'sensitive provider text'}})})};
- assert.throws(()=>c.fetchJsonWithRetry_('https://api.synopticdata.com/v2/stations/timeseries?token=private',1),/Synoptic response code 200/);
-});
-test('Station selection excludes un-warned stations before any API request',()=>{
- const event={eventKey:'k',hazard:'EH',year:2020,eventId:'1',issue:new Date(0),expire:new Date(600000),issueUtc:'1970-01-01T00:00Z',expireUtc:'1970-01-01T00:10Z',warnedUgcs:['LAZ079'],areas:[{ugc:'LAZ079',start:new Date(0),end:new Date(600000)}]};
- const rows=[[],['UNWARNED','Test','LA','St. Tammany','LIX','LA080',30,-90,0,'1','ACTIVE']];
- assert.equal(c.computeEventObservationsInMemory_({...cfg,_cwa:'LIX'},event,{area:{},zone:{}},rows).summaryRows.length,0);
 });
 test('An overlapping window union allows duration while duplicate timestamps preserve it',()=>{
  const windows=[{start:new Date(0),end:new Date(900000)},{start:new Date(600000),end:new Date(1200000)}];

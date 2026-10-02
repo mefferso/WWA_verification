@@ -1,6 +1,6 @@
 const {test}=require('node:test');
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),crypto=require('node:crypto');
-function context(){const c=vm.createContext({Date});vm.runInContext(fs.readFileSync('Code.gs','utf8'),c);return c;}
+function context(){const c=vm.createContext({Date});vm.runInContext(fs.readFileSync('legacy/apps-script/Code.gs','utf8'),c);return c;}
 function sheet(initial,failAt=0){
  const data=initial.map(r=>r.slice()),ops=[];let writes=0,maxRows=initial.length||1,maxCols=initial[0]?.length||1;
  const s={data,ops,getLastRow:()=>data.length,getLastColumn:()=>Math.max(...data.map(r=>r.length),0),getMaxRows:()=>maxRows,getMaxColumns:()=>maxCols,

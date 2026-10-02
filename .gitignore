@@ -3,6 +3,9 @@
 .env
 .env.*
 node_modules/
+dist/
+*.tmp
+import-staging/
 *.xlsx
 *.xls
 *.csv
