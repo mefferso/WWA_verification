@@ -44,6 +44,15 @@ test('Zero remains a valid observation and threshold',()=>{
 test('UGC normalization preserves county and marine identifiers',()=>{
  for(const [a,b] of [['la079','LAZ079'],[' ms087 ','MSZ087'],['LAZ079','LAZ079'],['LAC051','LAC051'],['GMZ570','GMZ570'],['079',''],['LAZ79','']])assert.equal(c.normalizeUgc_(a),b);
 });
+test('Station selection falls back to warned polygon geometry when zone metadata is stale',()=>{
+ const geometry={type:'Polygon',coordinates:[[[-91,29],[-89,29],[-89,31],[-91,31],[-91,29]]]};
+ const areas=[{ugc:'LAZ056',geometry},{ugc:'LAZ064',geometry:{type:'Polygon',coordinates:[[[-93,29],[-92,29],[-92,30],[-93,30],[-93,29]]]}}];
+ assert.equal(c.pointInGeometry_(-90,30,geometry),true);
+ assert.equal(c.pointInGeometry_(-92.5,30,geometry),false);
+ assert.equal(c.matchStationToWarnedUgc_({NWSZONE:'LA064',LONGITUDE:-90,LATITUDE:30},areas),'LAZ056');
+ assert.equal(c.matchStationToWarnedUgc_({NWSZONE:'LA056',LONGITUDE:-88,LATITUDE:30},areas),'LAZ056');
+ assert.equal(c.matchStationToWarnedUgc_({NWSZONE:'LA999',LONGITUDE:-88,LATITUDE:30},areas),'');
+});
 test('Only matching station windows are used for known footprints',()=>{
  const start=new Date(0),end=new Date(3600000);
  const e={issue:start,expire:end,warnedUgcs:['LAZ079'],areas:[{ugc:'LAZ079',start,end}]};
