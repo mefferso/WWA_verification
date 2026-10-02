@@ -11,6 +11,16 @@ test('Heat Index uses NWS regression and humidity adjustments',()=>{
  assert.ok(Math.abs(c.computeHeatIndexF_(85,90)-101.78)<0.1);
  assert.equal(c.computeHeatIndexF_(70,50),69.525);
 });
+test('Heat Index rejects implausible values outside 0 to 128 F',()=>{
+ assert.equal(c.validHeatIndexF_(0),null);
+ assert.equal(c.validHeatIndexF_(-5),null);
+ assert.equal(c.validHeatIndexF_(128),128);
+ assert.equal(c.validHeatIndexF_(128.1),null);
+ assert.equal(c.computeHeatIndexF_(-10,50),null);
+ assert.equal(c.computeHeatIndexF_(100,60),null);
+ const rules={HEAT_INDEX_F:rule(113,'>=')};
+ assert.equal(c.evaluateSampleCriteria_('EH',rules,null,null,150,null,null,null,cfg).hiMet,false);
+});
 test('Meteorological functions reject missing inputs',()=>{
  for(const x of [null,undefined,'',NaN]){
   assert.equal(c.computeHeatIndexF_(x,50),null);
