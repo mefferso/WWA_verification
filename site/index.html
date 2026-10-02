@@ -54,6 +54,8 @@
 
     .modal-overlay{display:none;position:fixed;inset:0;background:rgba(15,23,42,.66);z-index:6000;align-items:center;justify-content:center;padding:20px}.modal-overlay.active{display:flex}.modal{background:#fff;border-radius:10px;box-shadow:0 20px 60px rgba(0,0,0,.28);width:min(920px,96vw);max-height:86vh;overflow:auto}.modal-head{position:sticky;top:0;background:#fff;padding:12px 14px;border-bottom:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center;z-index:2}.modal-head h3{margin:0;font-size:16px}.modal-head button{border:0;background:#e2e8f0;border-radius:6px;padding:5px 8px;cursor:pointer}.modal-body{padding:12px 14px}.analytics-table{width:100%;border-collapse:collapse;font-size:11px}.analytics-table th,.analytics-table td{padding:6px 7px;border-bottom:1px solid #e2e8f0;text-align:right}.analytics-table th:first-child,.analytics-table td:first-child,.analytics-table th:nth-child(2),.analytics-table td:nth-child(2){text-align:left}.analytics-table th{font-size:10px;text-transform:uppercase;color:#475569;background:#f8fafc;position:sticky;top:47px}
     .form-row{display:flex;gap:8px}.form-row input{flex:1;padding:7px;border:1px solid var(--border);border-radius:6px}.modal-actions{text-align:right;margin-top:10px}.modal-actions button{padding:7px 12px;border:0;border-radius:6px;cursor:pointer;font-weight:750}.primary{background:#1d4ed8;color:#fff}.secondary{background:#e2e8f0;color:#334155}
+    .report-modal{width:min(1050px,96vw);max-height:90vh}.report-head{background:linear-gradient(115deg,#153e75,#1e4f91);color:#fff;border-bottom:0}.report-head h3{font-size:18px}.report-head button{background:rgba(255,255,255,.16);color:#fff}.report-body{background:#f8fafc;padding:18px}.report-hero{background:#fff;border:1px solid #dbe3ee;border-radius:12px;padding:18px;box-shadow:0 2px 8px rgba(15,23,42,.06);margin-bottom:14px}.report-kicker{font-size:10px;font-weight:900;letter-spacing:.09em;text-transform:uppercase;color:#64748b}.report-title{font-size:24px;font-weight:850;color:#173e76;margin:3px 0 8px}.report-meta{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:#475569}.report-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:14px}.report-summary-card{background:#f8fafc;border:1px solid #e2e8f0;border-radius:9px;padding:10px}.report-summary-label{font-size:9px;text-transform:uppercase;letter-spacing:.07em;color:#64748b;font-weight:850}.report-summary-value{font-size:20px;font-weight:850;color:#0f172a;margin-top:2px}.report-area{background:#fff;border:1px solid #dbe3ee;border-radius:11px;margin:10px 0;overflow:hidden;box-shadow:0 1px 4px rgba(15,23,42,.05)}.report-area-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 13px;background:#f8fafc;border-bottom:1px solid #e2e8f0}.report-area-name{font-size:14px;font-weight:850;color:#0f172a}.report-ugc{font-size:10px;color:#94a3b8;margin-left:5px}.report-status{font-size:9px;font-weight:900;color:#fff;border-radius:999px;padding:4px 8px}.report-stations{padding:7px 13px}.report-station{display:grid;grid-template-columns:minmax(190px,1.1fr) minmax(260px,1.8fr);gap:12px;padding:8px 0;border-bottom:1px solid #eef2f7}.report-station:last-child{border-bottom:0}.report-station-name{font-size:12px;font-weight:800;color:#1e293b}.report-station-sub{font-size:10px;color:#64748b;margin-top:2px}.report-observation{font-size:12px;color:#334155;line-height:1.35}.report-empty{font-size:11px;color:#64748b;padding:9px 0;font-style:italic}.report-footer{font-size:9px;color:#94a3b8;margin-top:14px;text-align:center}.report-actions{display:flex;gap:8px;justify-content:flex-end;position:sticky;bottom:-1px;background:#f8fafc;padding:12px 0 2px}.report-actions button{border:0;border-radius:7px;padding:8px 12px;font-weight:800;cursor:pointer}
+    @media print{body>*{display:none!important}#results-modal{display:block!important;position:static!important;background:#fff!important;padding:0!important}#results-modal .modal{display:block!important;box-shadow:none!important;width:100%!important;max-height:none!important;overflow:visible!important}#results-modal .report-head,#results-modal .report-actions{display:none!important}#results-modal .report-body{background:#fff!important;padding:0!important}.report-area,.report-hero{break-inside:avoid;box-shadow:none!important}}
 
     @media(max-width:900px){
       #header{grid-template-columns:1fr;height:145px}#summary-strip{grid-template-columns:repeat(4,1fr)}#workspace{top:189px;grid-template-columns:0 minmax(0,1fr)}#sidebar{display:none}#timeline{grid-template-columns:130px minmax(0,1fr)}
@@ -69,7 +71,7 @@
     <button onclick="refreshApp(currentEvent&&currentEvent.eventKey)">Refresh dashboard</button>
     <button onclick="window.open('https://github.com/mefferso/WWA_verification/actions/workflows/test.yml','_blank','noopener')">Test results</button>
     <button onclick="openAnalytics()">Analytics</button>
-    <button onclick="downloadSelectedResults()">Download Results</button>
+    <button onclick="openResultsReport()">Results Report</button>
     <div id="tools-spacer"></div>
   </div>
 
@@ -119,6 +121,7 @@
 
   <div id="analytics-modal" class="modal-overlay"><div class="modal"><div class="modal-head"><h3>Historical verification analytics</h3><button onclick="closeModal('analytics-modal')">✕</button></div><div class="modal-body" id="analytics-body"></div></div></div>
   <div id="area-modal" class="modal-overlay"><div class="modal" style="width:min(650px,95vw)"><div class="modal-head"><h3 id="area-modal-title">Area details</h3><button onclick="closeModal('area-modal')">✕</button></div><div class="modal-body" id="area-modal-body"></div></div></div>
+  <div id="results-modal" class="modal-overlay"><div class="modal report-modal"><div class="modal-head report-head"><h3>Selected Event Verification Report</h3><button onclick="closeModal('results-modal')">✕</button></div><div class="report-body" id="results-report-body"></div></div></div>
 
 <script>
   const COUNTY_SOURCE_URL = "https://services.arcgis.com/P3ePLMYs2RVChkJx/ArcGIS/rest/services/USA_Counties_Generalized_Boundaries/FeatureServer/0/query" +
@@ -369,54 +372,75 @@
   function sampleMetForHazard(s,h){if(h==='EH')return String(s.HEAT_INDEX_MET)==='TRUE'||String(s.TEMP_MET)==='TRUE';if(h==='EC')return String(s.WINDCHILL_MET)==='TRUE'||String(s.TEMP_MET)==='TRUE';return String(s.RFW_MET)==='TRUE'}
   function sampleLabel(s,h){if(h==='EH'){const hi=validHeatIndex(s.HEAT_INDEX_F),t=validNum(s.TEMP_F);return hi!=null?Math.round(hi)+'° HI':t!=null?Math.round(t)+'°':''}if(h==='EC'){const wc=validNum(s.WIND_CHILL_F),t=validNum(s.TEMP_F);return wc!=null?Math.round(wc)+'° WC':t!=null?Math.round(t)+'°':''}const w=validNum(s.WIND_MPH),rh=validNum(s.RH_PCT);return w!=null&&rh!=null?`${Math.round(w)} mph / ${Math.round(rh)}%`:''}
 
+  function openResultsReport(){
+    if(!currentEvent)return;
+    const areas=currentAreaVerification.slice().sort((a,b)=>String(a.AREA_LABEL||a.UGC).localeCompare(String(b.AREA_LABEL||b.UGC)));
+    const summary=currentEvent.summary||{},counts=summary.areaCounts||{},stationCounts=summary.stationCounts||{};
+    let html=`<section class="report-hero">
+      <div class="report-kicker">National Weather Service • WFO New Orleans/Baton Rouge</div>
+      <div class="report-title">${esc(currentEvent.productLabel||currentEvent.hazard||'Warning')} Verification</div>
+      <div class="report-meta">
+        <span><b>Event:</b> ${esc(currentEvent.hazard||'—')} #${esc(currentEvent.eventId||'—')}</span>
+        <span><b>Issued:</b> ${esc(fmtTime(currentEvent.issueUtc))}</span>
+        <span><b>Expires:</b> ${esc(fmtTime(currentEvent.expireUtc))}</span>
+      </div>
+      <div class="report-summary">
+        <div class="report-summary-card"><div class="report-summary-label">Warned areas met</div><div class="report-summary-value">${counts.MET||0} / ${summary.totalAreas||areas.length}</div></div>
+        <div class="report-summary-card"><div class="report-summary-label">Stations met</div><div class="report-summary-value">${stationCounts.MET||0}</div></div>
+        <div class="report-summary-card"><div class="report-summary-label">Not met areas</div><div class="report-summary-value">${counts.NOT_MET||0}</div></div>
+        <div class="report-summary-card"><div class="report-summary-label">Insufficient / no data</div><div class="report-summary-value">${(counts.INDETERMINATE||0)+(counts.NO_DATA||0)}</div></div>
+      </div>
+    </section>`;
+    areas.forEach(a=>{
+      const ugc=String(a.UGC||''),status=String(a.VERIFY_STATUS||'NO_DATA'),label=String(a.AREA_LABEL||ugc);
+      const verifying=currentRows.filter(r=>String(r.AREA_UGC||r.NWSZONE)===ugc&&String(r.VERIFY_STATUS)==='MET')
+        .sort((x,y)=>String(x.STID||'').localeCompare(String(y.STID||'')));
+      const statusColor={MET:'var(--met)',NOT_MET:'var(--not)',INDETERMINATE:'var(--ind)',NO_DATA:'var(--nodata)'}[status]||'var(--nodata)';
+      html+=`<section class="report-area">
+        <div class="report-area-head"><div class="report-area-name">${esc(label)} <span class="report-ugc">${esc(ugc)}</span></div><span class="report-status" style="background:${statusColor}">${esc(prettyStatus(status))}</span></div>
+        <div class="report-stations">`;
+      if(!verifying.length)html+='<div class="report-empty">No station observations verified the threshold for this warned area.</div>';
+      else verifying.forEach(r=>{html+=`<div class="report-station"><div><div class="report-station-name">${esc(r.STID||'—')} — ${esc(r.NAME||'Unknown station')}</div><div class="report-station-sub">${esc(r.NETWORK_NAME||'Unknown network')}</div></div><div class="report-observation">${esc(downloadStationObservation(r))}</div></div>`});
+      html+='</div></section>';
+    });
+    html+=`<div class="report-footer">Generated from the selected event in the LIX WWA Verification dashboard. Values shown are the observations that satisfied the configured verification criteria.</div>
+      <div class="report-actions"><button class="secondary" onclick="window.print()">Print / Save PDF</button><button class="primary" onclick="downloadSelectedResults()">Download Text</button></div>`;
+    document.getElementById('results-report-body').innerHTML=html;
+    document.getElementById('results-modal').classList.add('active');
+  }
+
   function downloadSelectedResults(){
     if(!currentEvent)return;
     const areas=currentAreaVerification.slice().sort((a,b)=>String(a.AREA_LABEL||a.UGC).localeCompare(String(b.AREA_LABEL||b.UGC)));
-    const lines=[
-      'WFO LIX Warning Verification Results',
-      '====================================',
-      `Product: ${currentEvent.productLabel||currentEvent.hazard||'—'}`,
-      `Event: ${currentEvent.hazard||'—'} #${currentEvent.eventId||'—'}`,
-      `Issued: ${fmtTime(currentEvent.issueUtc)}`,
-      `Expires: ${fmtTime(currentEvent.expireUtc)}`,
-      `Warned areas met: ${(currentEvent.summary?.areaCounts?.MET)||0} / ${currentEvent.summary?.totalAreas||areas.length}`,
-      ''
-    ];
+    const lines=['WFO LIX Warning Verification Results','====================================',`Product: ${currentEvent.productLabel||currentEvent.hazard||'—'}`,`Event: ${currentEvent.hazard||'—'} #${currentEvent.eventId||'—'}`,`Issued: ${fmtTime(currentEvent.issueUtc)}`,`Expires: ${fmtTime(currentEvent.expireUtc)}`,`Warned areas met: ${(currentEvent.summary?.areaCounts?.MET)||0} / ${currentEvent.summary?.totalAreas||areas.length}`,''];
     areas.forEach(a=>{
-      const ugc=String(a.UGC||'');
-      const label=String(a.AREA_LABEL||ugc);
-      const verifying=currentRows.filter(r=>String(r.AREA_UGC||r.NWSZONE)===ugc&&String(r.VERIFY_STATUS)==='MET')
-        .sort((x,y)=>String(x.STID||'').localeCompare(String(y.STID||'')));
+      const ugc=String(a.UGC||''),label=String(a.AREA_LABEL||ugc);
+      const verifying=currentRows.filter(r=>String(r.AREA_UGC||r.NWSZONE)===ugc&&String(r.VERIFY_STATUS)==='MET').sort((x,y)=>String(x.STID||'').localeCompare(String(y.STID||'')));
       lines.push(`${label} (${ugc}) — ${prettyStatus(a.VERIFY_STATUS)}`);
-      if(!verifying.length){
-        lines.push('  No verifying station observations.');
-      }else{
-        verifying.forEach(r=>lines.push('  - '+downloadStationLine(r)));
-      }
+      if(!verifying.length)lines.push('  No verifying station observations.');
+      else verifying.forEach(r=>lines.push(`  - ${r.STID||'—'} — ${r.NAME||'Unknown station'} [${r.NETWORK_NAME||'Unknown network'}] — ${downloadStationObservation(r)}`));
       lines.push('');
     });
-    const blob=new Blob([lines.join('\n')],{type:'text/plain;charset=utf-8'});
-    const url=URL.createObjectURL(blob),a=document.createElement('a');
+    const blob=new Blob([lines.join('\n')],{type:'text/plain;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');
     const date=(parseUtc(currentEvent.issueUtc)||new Date()).toISOString().slice(0,10).replace(/-/g,'');
     a.href=url;a.download=`LIX_${currentEvent.hazard||'WWA'}_${currentEvent.eventId||'event'}_${date}_verification.txt`;
     document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
   }
 
-  function downloadStationLine(r){
-    const head=`${r.STID||'—'} — ${r.NAME||'Unknown station'} [${r.NETWORK_NAME||'Unknown network'}]`;
+  function downloadStationObservation(r){
     if(currentEvent.hazard==='EH'){
       const parts=[];
-      if(r.EXCEEDED_BY==='TEMP'||r.EXCEEDED_BY==='BOTH')parts.push(`Temp ${nfmt(r.MAX_TEMP_F,1,'°F')} at ${fmtTime(r.MAX_TEMP_TIME_UTC)}`);
+      if(r.EXCEEDED_BY==='TEMP'||r.EXCEEDED_BY==='BOTH')parts.push(`Temperature ${nfmt(r.MAX_TEMP_F,1,'°F')} at ${fmtTime(r.MAX_TEMP_TIME_UTC)}`);
       if(r.EXCEEDED_BY==='HEAT_INDEX'||r.EXCEEDED_BY==='BOTH')parts.push(`Heat Index ${validHeatIndex(r.MAX_HEAT_INDEX_F)==null?'—':validHeatIndex(r.MAX_HEAT_INDEX_F).toFixed(1)+'°F'} at ${fmtTime(r.MAX_HEAT_INDEX_TIME_UTC)}`);
-      return head+' — '+(parts.join('; ')||'Verified');
+      return parts.join(' • ')||'Verified';
     }
     if(currentEvent.hazard==='EC'){
       const parts=[];
-      if(r.EXCEEDED_BY==='TEMP'||r.EXCEEDED_BY==='BOTH')parts.push(`Temp ${nfmt(r.MIN_TEMP_F,1,'°F')} at ${fmtTime(r.MIN_TEMP_TIME_UTC)}`);
+      if(r.EXCEEDED_BY==='TEMP'||r.EXCEEDED_BY==='BOTH')parts.push(`Temperature ${nfmt(r.MIN_TEMP_F,1,'°F')} at ${fmtTime(r.MIN_TEMP_TIME_UTC)}`);
       if(r.EXCEEDED_BY==='WINDCHILL'||r.EXCEEDED_BY==='BOTH')parts.push(`Wind chill ${nfmt(r.MIN_WINDCHILL_F,1,'°F')} at ${fmtTime(r.MIN_WINDCHILL_TIME_UTC)}`);
-      return head+' — '+(parts.join('; ')||'Verified');
+      return parts.join(' • ')||'Verified';
     }
-    return head+` — RH ${nfmt(r.RFW_VERIFY_RH_PCT,1,'%')}, sustained wind ${nfmt(r.RFW_VERIFY_WIND_MPH,1,' mph')}, gust ${nfmt(r.RFW_VERIFY_GUST_MPH,1,' mph')} at ${fmtTime(r.RFW_VERIFY_TIME_UTC)}`;
+    return `RH ${nfmt(r.RFW_VERIFY_RH_PCT,1,'%')} • sustained wind ${nfmt(r.RFW_VERIFY_WIND_MPH,1,' mph')} • gust ${nfmt(r.RFW_VERIFY_GUST_MPH,1,' mph')} at ${fmtTime(r.RFW_VERIFY_TIME_UTC)}`;
   }
 
   function openAnalytics(){
