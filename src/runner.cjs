@@ -2,7 +2,7 @@
 const crypto=require('node:crypto'),path=require('node:path'),zlib=require('node:zlib');
 const core=require('./core.cjs'),{EventStore,atomicWrite}=require('./store.cjs'),{loadConfig}=require('./config.cjs'),{groupEvents,footprintAreas}=require('./providers.cjs');
 const {hazardUsable}=require('./recalculate.cjs');
-const HASH_VERSION=5;
+const HASH_VERSION=6;
 class BudgetExceeded extends Error {}
 function fingerprint(event,areas,cfg,maps,metadata){
  return crypto.createHash('sha256').update(JSON.stringify({version:HASH_VERSION,event:[event.issueUtc,event.expireUtc,event.phenomena],
@@ -16,8 +16,9 @@ function reusable(old,event,signature,force,now=Date.now()){
 async function computeObservations(client,event,areas,metadata,cfg,maps,deadline=Infinity){
  const selected=new Map();
  for(const st of metadata){
-  const zone=core.normalizeUgc_(st.NWSZONE),stid=String(st.STID||'').trim(),state=String(st.STATE||'').toUpperCase(),county=String(st.COUNTY||'');
-  if(!stid||!state||!county||String(st.CWA||'').toUpperCase()!==cfg._cwa||!(event.warnedUgcs||[]).includes(zone))continue;
+  const stid=String(st.STID||'').trim(),state=String(st.STATE||'').toUpperCase(),county=String(st.COUNTY||'');
+  if(!stid||!state||!county||String(st.CWA||'').toUpperCase()!==cfg._cwa)continue;
+  const zone=core.matchStationToWarnedUgc_(st,areas);if(!zone)continue;
   const rules=core.lookupRulesForArea_(maps,event.hazard,state,county,zone);if(!rules)continue;
   const windows=areas.filter(a=>a.ugc===zone).map(a=>({start:new Date(a.startUtc),end:new Date(a.endUtc)}));if(!windows.length)continue;
   const meta={STID:stid,NAME:st.NAME||'',STATE:state,COUNTY:county,NWSZONE:zone,areaUgc:zone,rules,windows,
