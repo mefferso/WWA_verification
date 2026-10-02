@@ -34,7 +34,7 @@
     #sidebar{background:#f8fafc;border-right:1px solid var(--border);overflow:auto;padding:10px;z-index:700}
     .panel{background:#fff;border:1px solid #dbe3ee;border-radius:9px;margin-bottom:9px;box-shadow:0 1px 3px rgba(15,23,42,.05)}
     .panel-title{display:flex;align-items:center;justify-content:space-between;padding:9px 10px;border-bottom:1px solid #e2e8f0;font-size:12px;font-weight:800}.panel-body{padding:9px 10px}
-    .filter-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}.filter-grid label{font-size:10px;color:var(--muted);font-weight:800;text-transform:uppercase}.filter-grid select{width:100%;margin-top:3px;border:1px solid var(--border);border-radius:6px;padding:6px;background:#fff;font-size:12px}
+    .filter-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}.filter-grid label{font-size:10px;color:var(--muted);font-weight:800;text-transform:uppercase}.filter-grid select{width:100%;margin-top:3px;border:1px solid var(--border);border-radius:6px;padding:6px;background:#fff;font-size:12px}.filter-check{grid-column:1/-1;display:flex!important;align-items:center;gap:7px;text-transform:none!important;font-size:11px!important;cursor:pointer}.filter-check input{width:15px;height:15px;margin:0}
     #area-list{display:flex;flex-direction:column;gap:6px}.area-card{border:1px solid #e2e8f0;border-left:5px solid var(--nodata);border-radius:7px;padding:7px 8px;background:#fff;cursor:pointer}.area-card:hover{background:#f8fafc}.area-card.met{border-left-color:var(--met)}.area-card.not_met{border-left-color:var(--not)}.area-card.indeterminate{border-left-color:var(--ind)}.area-card.no_data{border-left-color:var(--nodata)}
     .area-top{display:flex;justify-content:space-between;gap:8px;align-items:center}.area-name{font-size:12px;font-weight:800}.status-pill{font-size:9px;font-weight:900;padding:3px 5px;border-radius:999px;color:#fff;white-space:nowrap}.status-pill.met{background:var(--met)}.status-pill.not_met{background:var(--not)}.status-pill.indeterminate{background:var(--ind)}.status-pill.no_data{background:var(--nodata)}
     .area-meta{font-size:10px;color:var(--muted);margin-top:4px;line-height:1.3}
@@ -42,7 +42,7 @@
     .map-legend{background:rgba(255,255,255,.96);border:1px solid #cbd5e1;border-radius:7px;padding:8px 10px;box-shadow:0 2px 8px rgba(15,23,42,.16);font-size:11px;line-height:1.35;color:#334155}
     .map-legend-title{font-size:11px;font-weight:850;color:#0f172a;margin-bottom:5px}.map-legend-row{display:flex;align-items:center;gap:7px;margin:3px 0}.map-legend-swatch{width:15px;height:15px;border:2px solid;border-radius:3px;flex:0 0 auto}.map-legend-note{margin-top:6px;padding-top:5px;border-top:1px solid #e2e8f0;font-size:9px;color:#64748b;max-width:190px}
     .station-label{background:rgba(15,23,42,.9)!important;color:#fff!important;border:1px solid rgba(255,255,255,.55)!important;border-radius:4px!important;font-size:10px!important;font-weight:800!important;padding:2px 5px!important;box-shadow:0 1px 5px rgba(0,0,0,.3)!important;white-space:nowrap}.station-label:before{display:none!important}
-    .popup-title{font-weight:850;font-size:14px;color:#173e76;margin-bottom:6px}.popup-table{border-collapse:collapse;width:100%;font-size:11px}.popup-table td{padding:4px 5px;border-bottom:1px solid #eef2f7;vertical-align:top}.popup-table td:first-child{font-weight:750;color:#475569;white-space:nowrap;width:43%}
+    .popup-title{font-weight:850;font-size:16px;color:#173e76;margin-bottom:8px}.popup-table{border-collapse:collapse;width:100%;font-size:13px}.popup-table td{padding:6px 5px;border-bottom:1px solid #eef2f7;vertical-align:top;line-height:1.3}.popup-table td:first-child{font-weight:750;color:#475569;white-space:nowrap;width:43%}
 
     #timeline{position:fixed;left:0;right:0;bottom:0;height:128px;background:#fff;border-top:1px solid var(--border);z-index:1100;box-shadow:0 -3px 12px rgba(15,23,42,.10);padding:7px 12px;display:grid;grid-template-columns:190px minmax(0,1fr);gap:12px}
     #timeline-summary{border-right:1px solid #e2e8f0;padding-right:10px}.timeline-title{font-size:11px;font-weight:850}.timeline-time{font-size:16px;font-weight:850;margin:3px 0}.timeline-kpi{font-size:10px;color:var(--muted);line-height:1.4}
@@ -95,6 +95,7 @@
           <label title="A = primary observing networks; B = secondary; C = other networks">Station priority<select id="filter-tier"><option value="ALL">All</option><option value="A">Primary (A)</option><option value="B">Secondary (B)</option><option value="C">Other (C)</option></select></label>
           <label>Mechanism<select id="filter-by"><option value="ALL">All</option><option value="TEMP">Temperature</option><option value="HEAT_INDEX">Heat index</option><option value="WINDCHILL">Wind chill</option><option value="RFW">RH + wind</option></select></label>
           <label>State<select id="filter-state"><option value="ALL">All</option><option value="LA">LA</option><option value="MS">MS</option></select></label>
+          <label class="filter-check"><input type="checkbox" id="show-no-data"> Show no-data stations</label>
         </div>
       </div>
       <div class="panel"><div class="panel-title">Warned areas <span id="area-count">—</span></div><div class="panel-body"><div id="area-list"></div></div></div>
@@ -154,6 +155,7 @@
   const eventSelect=document.getElementById('event-select');
   const filters=['filter-status','filter-tier','filter-by','filter-state'].map(id=>document.getElementById(id));
   filters.forEach(x=>x.addEventListener('change',()=>renderStations()));
+  document.getElementById('show-no-data').addEventListener('change',()=>renderStations());
   eventSelect.addEventListener('change',()=>renderEvent(eventSelect.value));
   document.getElementById('time-slider').addEventListener('input',e=>renderTimelineIndex(Number(e.target.value)));
   map.on('zoomend',updateStationLabels);
@@ -247,10 +249,12 @@
 
   function renderStations(){
     stationLayer.clearLayers();markerRegistry={};
-    const status=document.getElementById('filter-status').value,tier=document.getElementById('filter-tier').value,by=document.getElementById('filter-by').value,state=document.getElementById('filter-state').value;
+    const status=document.getElementById('filter-status').value,tier=document.getElementById('filter-tier').value,by=document.getElementById('filter-by').value,state=document.getElementById('filter-state').value,showNoData=document.getElementById('show-no-data').checked;
     let visible=0;
     currentRows.forEach(row=>{
-      if(status!=='ALL'&&String(row.VERIFY_STATUS)!==status)return;
+      const rowStatus=String(row.VERIFY_STATUS||'NO_DATA');
+      if(rowStatus==='NO_DATA'&&!showNoData&&status!=='NO_DATA')return;
+      if(status!=='ALL'&&rowStatus!==status)return;
       if(tier!=='ALL'&&String(row.NETWORK_TIER)!==tier)return;
       if(state!=='ALL'&&String(row.STATE)!==state)return;
       if(by!=='ALL'&&!matchesMechanism(row,by))return;
@@ -276,7 +280,7 @@
     Object.values(markerRegistry).forEach(({marker,row})=>{marker.unbindTooltip();if(show){const txt=primarySummaryLabel(row);if(txt)marker.bindTooltip(txt,{permanent:true,direction:'right',className:'station-label',offset:[9,0]})}})
   }
 
-  function primarySummaryLabel(r){if(currentEvent.hazard==='EH')return validNum(r.MAX_HEAT_INDEX_F)!=null?Math.round(r.MAX_HEAT_INDEX_F)+'°':validNum(r.MAX_TEMP_F)!=null?Math.round(r.MAX_TEMP_F)+'°':'';if(currentEvent.hazard==='EC')return validNum(r.MIN_WINDCHILL_F)!=null?Math.round(r.MIN_WINDCHILL_F)+'°':validNum(r.MIN_TEMP_F)!=null?Math.round(r.MIN_TEMP_F)+'°':'';if(currentEvent.hazard==='RFW'){const rh=validNum(r.MIN_RH_PCT),w=validNum(r.MAX_WIND_MPH);return rh!=null&&w!=null?`${Math.round(w)} mph / ${Math.round(rh)}%`:''}return''}
+  function primarySummaryLabel(r){if(currentEvent.hazard==='EH'){const hi=validHeatIndex(r.MAX_HEAT_INDEX_F);return hi!=null?Math.round(hi)+'°':validNum(r.MAX_TEMP_F)!=null?Math.round(r.MAX_TEMP_F)+'°':''}if(currentEvent.hazard==='EC')return validNum(r.MIN_WINDCHILL_F)!=null?Math.round(r.MIN_WINDCHILL_F)+'°':validNum(r.MIN_TEMP_F)!=null?Math.round(r.MIN_TEMP_F)+'°':'';if(currentEvent.hazard==='RFW'){const rh=validNum(r.MIN_RH_PCT),w=validNum(r.MAX_WIND_MPH);return rh!=null&&w!=null?`${Math.round(w)} mph / ${Math.round(rh)}%`:''}return''}
 
   function renderAreaList(){
     const el=document.getElementById('area-list');el.innerHTML='';
@@ -307,10 +311,12 @@
 
   function buildStationPopup(r){
     let rows='';
-    if(currentEvent.hazard==='EH')rows=`<tr><td>Max temp</td><td>${nfmt(r.MAX_TEMP_F,1,' °F')} @ ${fmtTime(r.MAX_TEMP_TIME_UTC)}</td></tr><tr><td>Max heat index</td><td>${nfmt(r.MAX_HEAT_INDEX_F,1,' °F')} @ ${fmtTime(r.MAX_HEAT_INDEX_TIME_UTC)}</td></tr><tr><td>HI inputs</td><td>T ${nfmt(r.HI_TEMP_F,1,' °F')} • RH ${nfmt(r.HI_RH_PCT,1,'%')} • Td ${nfmt(r.HI_DEWPOINT_F,1,' °F')}</td></tr><tr><td>HI duration</td><td>${durationText(r.HEAT_INDEX_CRITERIA_MAX_CONTINUOUS_MIN)} max continuous</td></tr>`;
-    else if(currentEvent.hazard==='EC')rows=`<tr><td>Min temp</td><td>${nfmt(r.MIN_TEMP_F,1,' °F')} @ ${fmtTime(r.MIN_TEMP_TIME_UTC)}</td></tr><tr><td>Min wind chill</td><td>${nfmt(r.MIN_WINDCHILL_F,1,' °F')} @ ${fmtTime(r.MIN_WINDCHILL_TIME_UTC)}</td></tr><tr><td>WC duration</td><td>${durationText(r.WINDCHILL_CRITERIA_MAX_CONTINUOUS_MIN)} max continuous</td></tr>`;
+    if(currentEvent.hazard==='EH'){
+      const hi=validHeatIndex(r.MAX_HEAT_INDEX_F),hiTime=hi==null?'—':fmtTime(r.MAX_HEAT_INDEX_TIME_UTC);
+      rows=`<tr><td>Max temp</td><td>${nfmt(r.MAX_TEMP_F,1,' °F')} @ ${fmtTime(r.MAX_TEMP_TIME_UTC)}</td></tr><tr><td>Max heat index</td><td>${hi==null?'—':hi.toFixed(1)+' °F'}${hi==null?'':' @ '+hiTime}</td></tr><tr><td>HI inputs</td><td>${hi==null?'—':`T ${nfmt(r.HI_TEMP_F,1,' °F')} • RH ${nfmt(r.HI_RH_PCT,1,'%')} • Td ${nfmt(r.HI_DEWPOINT_F,1,' °F')}`}</td></tr><tr><td>HI duration</td><td>${durationText(r.HEAT_INDEX_CRITERIA_MAX_CONTINUOUS_MIN)} max continuous</td></tr>`;
+    } else if(currentEvent.hazard==='EC')rows=`<tr><td>Min temp</td><td>${nfmt(r.MIN_TEMP_F,1,' °F')} @ ${fmtTime(r.MIN_TEMP_TIME_UTC)}</td></tr><tr><td>Min wind chill</td><td>${nfmt(r.MIN_WINDCHILL_F,1,' °F')} @ ${fmtTime(r.MIN_WINDCHILL_TIME_UTC)}</td></tr><tr><td>WC duration</td><td>${durationText(r.WINDCHILL_CRITERIA_MAX_CONTINUOUS_MIN)} max continuous</td></tr>`;
     else rows=`<tr><td>Min RH</td><td>${nfmt(r.MIN_RH_PCT,1,'%')} @ ${fmtTime(r.MIN_RH_TIME_UTC)}</td></tr><tr><td>Max sustained wind</td><td>${nfmt(r.MAX_WIND_MPH,1,' mph')} @ ${fmtTime(r.MAX_WIND_TIME_UTC)}</td></tr><tr><td>Max gust</td><td>${nfmt(r.MAX_GUST_MPH,1,' mph')} @ ${fmtTime(r.MAX_GUST_TIME_UTC)}</td></tr><tr><td>First simultaneous met</td><td>${fmtTime(r.RFW_VERIFY_TIME_UTC)}</td></tr><tr><td>RFW duration</td><td>${durationText(r.RFW_CRITERIA_MAX_CONTINUOUS_MIN)} max continuous</td></tr>`;
-    return `<div style="min-width:320px"><div class="popup-title">${esc(r.NAME)} (${esc(r.STID)})</div><table class="popup-table"><tr><td>Status</td><td><b>${prettyStatus(r.VERIFY_STATUS)}</b> • ${esc(r.CONFIDENCE||'LOW')} confidence</td></tr><tr><td>Area</td><td>${esc(r.COUNTY||'—')} • ${esc(r.NWSZONE||'—')}</td></tr><tr><td>Network</td><td>${esc(r.NETWORK_NAME||'—')} • Tier ${esc(r.NETWORK_TIER||'—')}</td></tr><tr><td>Coverage</td><td>${nfmt(r.DATA_COVERAGE_PCT,0,'%')} (${r.OBS_COUNT||0} obs)</td></tr><tr><td>Threshold</td><td>${esc(r.THRESHOLD_SUMMARY||'—')}</td></tr><tr><td>Verified by</td><td>${esc(r.EXCEEDED_BY||'—')}</td></tr>${rows}${r.NOTES?`<tr><td>Note</td><td>${esc(r.NOTES)}</td></tr>`:''}</table></div>`;
+    return `<div style="min-width:320px"><div class="popup-title">${esc(r.NAME)} (${esc(r.STID)})</div><table class="popup-table"><tr><td>Area</td><td>${esc(r.COUNTY||'—')} • ${esc(r.NWSZONE||'—')}</td></tr><tr><td>Network</td><td>${esc(r.NETWORK_NAME||'—')} • Tier ${esc(r.NETWORK_TIER||'—')}</td></tr><tr><td>Verified by</td><td>${esc(r.EXCEEDED_BY||'—')}</td></tr>${rows}</table></div>`;
   }
 
   function fitEventBounds(){
@@ -360,7 +366,7 @@
   function updateCriterionCountsAt(idx){document.querySelectorAll('.criterion-row').forEach(row=>{const field=row.dataset.field,b=timelineBuckets[idx],count=Object.values(b.stations).filter(s=>String(s[field])==='TRUE').length;row.querySelector('.criterion-count').textContent=`${count} stn now`})}
 
   function sampleMetForHazard(s,h){if(h==='EH')return String(s.HEAT_INDEX_MET)==='TRUE'||String(s.TEMP_MET)==='TRUE';if(h==='EC')return String(s.WINDCHILL_MET)==='TRUE'||String(s.TEMP_MET)==='TRUE';return String(s.RFW_MET)==='TRUE'}
-  function sampleLabel(s,h){if(h==='EH'){const hi=validNum(s.HEAT_INDEX_F),t=validNum(s.TEMP_F);return hi!=null?Math.round(hi)+'° HI':t!=null?Math.round(t)+'°':''}if(h==='EC'){const wc=validNum(s.WIND_CHILL_F),t=validNum(s.TEMP_F);return wc!=null?Math.round(wc)+'° WC':t!=null?Math.round(t)+'°':''}const w=validNum(s.WIND_MPH),rh=validNum(s.RH_PCT);return w!=null&&rh!=null?`${Math.round(w)} mph / ${Math.round(rh)}%`:''}
+  function sampleLabel(s,h){if(h==='EH'){const hi=validHeatIndex(s.HEAT_INDEX_F),t=validNum(s.TEMP_F);return hi!=null?Math.round(hi)+'° HI':t!=null?Math.round(t)+'°':''}if(h==='EC'){const wc=validNum(s.WIND_CHILL_F),t=validNum(s.TEMP_F);return wc!=null?Math.round(wc)+'° WC':t!=null?Math.round(t)+'°':''}const w=validNum(s.WIND_MPH),rh=validNum(s.RH_PCT);return w!=null&&rh!=null?`${Math.round(w)} mph / ${Math.round(rh)}%`:''}
 
   function openAnalytics(){
     const rows=(payload.analytics||[]);let html='<p style="font-size:11px;color:#64748b">Available imported and computed history. Incomplete events are shown explicitly. Area counts distinguish actual observational non-verification from indeterminate/no-data cases.</p>';
@@ -379,6 +385,7 @@
   function prettyStatus(s){return String(s||'NO_DATA').replace('_',' ').toLowerCase().replace(/\b\w/g,c=>c.toUpperCase())}
   function statusRank(s){return({MET:0,NOT_MET:1,INDETERMINATE:2,NO_DATA:3})[String(s)]??4}
   function validNum(v){if(v===null||v===undefined||v==='')return null;const n=Number(v);return Number.isFinite(n)?n:null}
+  function validHeatIndex(v){const n=validNum(v);return n!=null&&n>0&&n<=128?n:null}
   function nfmt(v,d=1,suffix=''){const n=validNum(v);return n==null?'—':n.toFixed(d)+suffix}
   function durationText(v){const n=validNum(v);if(n==null)return'—';if(n<60)return`${Math.round(n)} min`;return`${Math.floor(n/60)}h ${Math.round(n%60)}m`}
   function esc(v){return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;')}
