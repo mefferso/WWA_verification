@@ -2,7 +2,7 @@
 const crypto=require('node:crypto'),path=require('node:path'),zlib=require('node:zlib');
 const core=require('./core.cjs'),{EventStore,atomicWrite}=require('./store.cjs'),{loadConfig}=require('./config.cjs'),{groupEvents,footprintAreas}=require('./providers.cjs');
 const {hazardUsable}=require('./recalculate.cjs');
-const HASH_VERSION=4;
+const HASH_VERSION=5;
 class BudgetExceeded extends Error {}
 function fingerprint(event,areas,cfg,maps,metadata){
  return crypto.createHash('sha256').update(JSON.stringify({version:HASH_VERSION,event:[event.issueUtc,event.expireUtc,event.phenomena],
