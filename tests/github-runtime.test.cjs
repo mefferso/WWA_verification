@@ -7,6 +7,17 @@ test('Native Node core preserves meteorological and zero semantics',()=>{
  assert.equal(core.computeHeatIndexF_(null,70),null);
  assert.equal(core.normalizeUgc_('LA079'),'LAZ079');assert.equal(core.toFinite_(0),0);
 });
+test('Dashboard keeps station popups concise and no-data stations optional',()=>{
+ const html=fs.readFileSync(path.resolve(__dirname,'../site/index.html'),'utf8');
+ assert.ok(html.includes('id="show-no-data"'));
+ assert.ok(html.includes('Show no-data stations'));
+ assert.ok(html.includes('function validHeatIndex(v)'));
+ const popup=html.slice(html.indexOf('function buildStationPopup'),html.indexOf('function fitEventBounds'));
+ assert.equal(popup.includes('<td>Status</td>'),false);
+ assert.equal(popup.includes('<td>Coverage</td>'),false);
+ assert.equal(popup.includes('<td>Threshold</td>'),false);
+ assert.equal(popup.includes('<td>Note</td>'),false);
+});
 test('Per-event store safely names files and round-trips all native samples',()=>{
  const {EventStore,eventId}=require('../src/store.cjs');
  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'wwa-test-'));
