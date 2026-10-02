@@ -28,7 +28,7 @@ The EC export contains TEMP_F rules only. The existing implementation applies th
 
 Heat Index uses the NWS/WPC simple formula averaged with air temperature below the preliminary 80°F transition, otherwise the Rothfusz regression with low/high humidity adjustments. Wind chill uses the NWS formula only at T ≤50°F and sustained wind >3 mph. Missing inputs return null, including null/undefined/empty strings; numeric zero remains valid. Missing dewpoint can be derived using the Magnus formula when T and positive RH exist.
 
-Physical guards in the current processing path: temperature −80 to 140°F, wind 0–200 mph, gust 0–250 mph, RH 0–100%, and dewpoint −120 to 120°F. Derived Heat Index/wind chill are rounded to one decimal **before** threshold comparisons; this preserved behavior can affect values very close to a threshold. Wind chill outside its domain remains missing, not air temperature.
+Physical guards in the current processing path: temperature −80 to 140°F, wind 0–200 mph, gust 0–250 mph, RH 0–100%, and dewpoint −120 to 120°F. Derived Heat Index values must be **greater than 0°F and no greater than 128°F**; values outside that range are treated as missing for verification, extrema, coverage, timelines, and display. Valid derived Heat Index/wind chill values are rounded to one decimal **before** threshold comparisons. Wind chill outside its domain remains missing, not air temperature.
 
 ## Timing, duration, and coverage
 
