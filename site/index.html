@@ -69,6 +69,7 @@
     <button onclick="refreshApp(currentEvent&&currentEvent.eventKey)">Refresh dashboard</button>
     <button onclick="window.open('https://github.com/mefferso/WWA_verification/actions/workflows/test.yml','_blank','noopener')">Test results</button>
     <button onclick="openAnalytics()">Analytics</button>
+    <button onclick="downloadSelectedResults()">Download Results</button>
     <div id="tools-spacer"></div>
   </div>
 
@@ -367,6 +368,56 @@
 
   function sampleMetForHazard(s,h){if(h==='EH')return String(s.HEAT_INDEX_MET)==='TRUE'||String(s.TEMP_MET)==='TRUE';if(h==='EC')return String(s.WINDCHILL_MET)==='TRUE'||String(s.TEMP_MET)==='TRUE';return String(s.RFW_MET)==='TRUE'}
   function sampleLabel(s,h){if(h==='EH'){const hi=validHeatIndex(s.HEAT_INDEX_F),t=validNum(s.TEMP_F);return hi!=null?Math.round(hi)+'° HI':t!=null?Math.round(t)+'°':''}if(h==='EC'){const wc=validNum(s.WIND_CHILL_F),t=validNum(s.TEMP_F);return wc!=null?Math.round(wc)+'° WC':t!=null?Math.round(t)+'°':''}const w=validNum(s.WIND_MPH),rh=validNum(s.RH_PCT);return w!=null&&rh!=null?`${Math.round(w)} mph / ${Math.round(rh)}%`:''}
+
+  function downloadSelectedResults(){
+    if(!currentEvent)return;
+    const areas=currentAreaVerification.slice().sort((a,b)=>String(a.AREA_LABEL||a.UGC).localeCompare(String(b.AREA_LABEL||b.UGC)));
+    const lines=[
+      'WFO LIX Warning Verification Results',
+      '====================================',
+      `Product: ${currentEvent.productLabel||currentEvent.hazard||'—'}`,
+      `Event: ${currentEvent.hazard||'—'} #${currentEvent.eventId||'—'}`,
+      `Issued: ${fmtTime(currentEvent.issueUtc)}`,
+      `Expires: ${fmtTime(currentEvent.expireUtc)}`,
+      `Warned areas met: ${(currentEvent.summary?.areaCounts?.MET)||0} / ${currentEvent.summary?.totalAreas||areas.length}`,
+      ''
+    ];
+    areas.forEach(a=>{
+      const ugc=String(a.UGC||'');
+      const label=String(a.AREA_LABEL||ugc);
+      const verifying=currentRows.filter(r=>String(r.AREA_UGC||r.NWSZONE)===ugc&&String(r.VERIFY_STATUS)==='MET')
+        .sort((x,y)=>String(x.STID||'').localeCompare(String(y.STID||'')));
+      lines.push(`${label} (${ugc}) — ${prettyStatus(a.VERIFY_STATUS)}`);
+      if(!verifying.length){
+        lines.push('  No verifying station observations.');
+      }else{
+        verifying.forEach(r=>lines.push('  - '+downloadStationLine(r)));
+      }
+      lines.push('');
+    });
+    const blob=new Blob([lines.join('\n')],{type:'text/plain;charset=utf-8'});
+    const url=URL.createObjectURL(blob),a=document.createElement('a');
+    const date=(parseUtc(currentEvent.issueUtc)||new Date()).toISOString().slice(0,10).replace(/-/g,'');
+    a.href=url;a.download=`LIX_${currentEvent.hazard||'WWA'}_${currentEvent.eventId||'event'}_${date}_verification.txt`;
+    document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+  }
+
+  function downloadStationLine(r){
+    const head=`${r.STID||'—'} — ${r.NAME||'Unknown station'} [${r.NETWORK_NAME||'Unknown network'}]`;
+    if(currentEvent.hazard==='EH'){
+      const parts=[];
+      if(r.EXCEEDED_BY==='TEMP'||r.EXCEEDED_BY==='BOTH')parts.push(`Temp ${nfmt(r.MAX_TEMP_F,1,'°F')} at ${fmtTime(r.MAX_TEMP_TIME_UTC)}`);
+      if(r.EXCEEDED_BY==='HEAT_INDEX'||r.EXCEEDED_BY==='BOTH')parts.push(`Heat Index ${validHeatIndex(r.MAX_HEAT_INDEX_F)==null?'—':validHeatIndex(r.MAX_HEAT_INDEX_F).toFixed(1)+'°F'} at ${fmtTime(r.MAX_HEAT_INDEX_TIME_UTC)}`);
+      return head+' — '+(parts.join('; ')||'Verified');
+    }
+    if(currentEvent.hazard==='EC'){
+      const parts=[];
+      if(r.EXCEEDED_BY==='TEMP'||r.EXCEEDED_BY==='BOTH')parts.push(`Temp ${nfmt(r.MIN_TEMP_F,1,'°F')} at ${fmtTime(r.MIN_TEMP_TIME_UTC)}`);
+      if(r.EXCEEDED_BY==='WINDCHILL'||r.EXCEEDED_BY==='BOTH')parts.push(`Wind chill ${nfmt(r.MIN_WINDCHILL_F,1,'°F')} at ${fmtTime(r.MIN_WINDCHILL_TIME_UTC)}`);
+      return head+' — '+(parts.join('; ')||'Verified');
+    }
+    return head+` — RH ${nfmt(r.RFW_VERIFY_RH_PCT,1,'%')}, sustained wind ${nfmt(r.RFW_VERIFY_WIND_MPH,1,' mph')}, gust ${nfmt(r.RFW_VERIFY_GUST_MPH,1,' mph')} at ${fmtTime(r.RFW_VERIFY_TIME_UTC)}`;
+  }
 
   function openAnalytics(){
     const rows=(payload.analytics||[]);let html='<p style="font-size:11px;color:#64748b">Available imported and computed history. Incomplete events are shown explicitly. Area counts distinguish actual observational non-verification from indeterminate/no-data cases.</p>';
