@@ -6,7 +6,7 @@ GitHub owns configuration, code, stored observations, tests, execution, and publ
 
 1. `.github/workflows/verify.yml` runs on schedule or authenticated workflow dispatch. The token comes exclusively from an Actions secret.
 2. `scripts/verify.cjs` validates the requested UTC year/month or annual range. `src/providers.cjs` reads IEM annual VTEC events, event GeoJSON, Synoptic station metadata, and station time series.
-3. `src/runner.cjs` groups supported warning events, resolves canonical UGC windows, and selects stations whose current metadata zone exactly matches a warned UGC. It processes 60 station IDs per request and at most 24 hours per time slice.
+3. `src/runner.cjs` groups supported warning events, resolves canonical UGC windows, and selects stations using the actual warned-area GeoJSON when coordinates are available, with exact metadata-zone matching as a fallback. It processes 60 station IDs per request and at most 24 hours per time slice.
 4. `src/core.cjs` applies the preserved meteorological equations/rules. Native usable samples and station aggregates are saved atomically per event by `src/store.cjs`. Provider failures retain the previous event file.
 5. The workflow validates/builds and commits completed checkpoints plus a run report. A 45-minute soft deadline leaves time to commit before the job's 60-minute limit. Interrupted current events remain eligible for rerun; earlier completed events are already checkpointed locally and committed by the remaining steps.
 6. `.github/workflows/pages.yml` tests/builds on source pushes, manual dispatch, and completed verification runs (including partial failures). This workflow_run trigger is necessary because GITHUB_TOKEN bot pushes do not start ordinary push workflows.
