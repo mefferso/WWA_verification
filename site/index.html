@@ -144,7 +144,7 @@
       '<div class="map-legend-row"><span class="map-legend-swatch" style="background:rgba(22,163,74,.24);border-color:#16a34a"></span>Met</div>'+
       '<div class="map-legend-row"><span class="map-legend-swatch" style="background:rgba(220,38,38,.24);border-color:#dc2626"></span>Not met</div>'+
       '<div class="map-legend-row"><span class="map-legend-swatch" style="background:rgba(176,166,150,.24);border-color:#b0a696"></span>No verdict — couldn\'t judge / no data</div>'+
-      '<div class="map-legend-note">Green/red reflect the final threshold result for each warned area. Station dots use the same status colors. The Met only filter dims areas that did not verify.</div>';
+      '<div class="map-legend-note">Green/red reflect the final threshold result for each warned area. Station dots use the same status colors. The Met only filter shows non-verifying warned areas translucent.</div>';
     L.DomEvent.disableClickPropagation(div);
     return div;
   };
@@ -241,7 +241,7 @@
       const v=verifyMap[a.ugc]||{VERIFY_STATUS:'NO_DATA',AREA_LABEL:a.ugc,CONFIDENCE:'LOW'};
       const feature={type:'Feature',properties:{ugc:a.ugc},geometry:a.geometry};
       const layer=L.geoJSON(feature,{pane:'warningPane',style:()=>areaStyle(v.VERIFY_STATUS)}).addTo(warningLayer);
-      if(polygonDimmed(v.VERIFY_STATUS))layer.eachLayer(l=>l.setStyle({fillOpacity:.03,opacity:.25}));
+      if(polygonDimmed(v.VERIFY_STATUS))layer.eachLayer(l=>l.setStyle({fillOpacity:.10,opacity:.5}));
       layer.bindPopup(buildAreaPopup(v,a));
       layer.on('click',()=>openAreaDetails(a.ugc));
       activeAreaLayers[a.ugc]=layer;
@@ -375,7 +375,7 @@
   function highlightActiveAreasAtTime(ms){
     const verify={};currentAreaVerification.forEach(v=>verify[v.UGC]=v);
     const areas=(payload.areas&&payload.areas[currentEvent.eventKey])||[];const active={};areas.forEach(a=>{const s=parseUtc(a.startUtc),e=parseUtc(a.endUtc);if(s&&e&&ms>=s.getTime()&&ms<=e.getTime())active[a.ugc]=true});
-    Object.entries(activeAreaLayers).forEach(([ugc,layer])=>{const st=(verify[ugc]||{}).VERIFY_STATUS;const dim=polygonDimmed(st);layer.eachLayer(l=>l.setStyle({...areaStyle(st),fillOpacity:dim?.03:(active[ugc]?.24:.03),opacity:dim?.25:(active[ugc]?1:.25)}))})
+    Object.entries(activeAreaLayers).forEach(([ugc,layer])=>{const st=(verify[ugc]||{}).VERIFY_STATUS;const dim=polygonDimmed(st);layer.eachLayer(l=>l.setStyle({...areaStyle(st),fillOpacity:dim?.10:(active[ugc]?.24:.03),opacity:dim?.5:(active[ugc]?1:.25)}))})
   }
 
   function renderCriterionRows(){
