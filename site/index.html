@@ -10,7 +10,7 @@
     :root {
       --nav:#172033; --blue:#153e75; --blue2:#1d4ed8; --bg:#f1f5f9; --panel:#ffffff;
       --text:#0f172a; --muted:#64748b; --border:#cbd5e1;
-      --met:#16a34a; --not:#dc2626; --ind:#f59e0b; --nodata:#94a3b8;
+      --met:#16a34a; --not:#dc2626; --ind:#b0a696; --nodata:#94a3b8;
       --shadow:0 4px 16px rgba(15,23,42,.14);
     }
     *{box-sizing:border-box}
@@ -94,11 +94,12 @@
       <div class="panel">
         <div class="panel-title">Display filters <span id="visible-station-count">—</span></div>
         <div class="panel-body filter-grid">
-          <label>Threshold<select id="filter-status"><option value="ALL">All</option><option value="MET">Met</option><option value="NOT_MET">Not met</option><option value="INDETERMINATE">Indeterminate</option><option value="NO_DATA">No data</option></select></label>
+          <label>Status<select id="filter-status"><option value="ALL">All</option><option value="MET">Met</option><option value="NOT_MET">Not met</option><option value="INDETERMINATE">Couldn't judge</option><option value="NO_DATA">No data</option></select></label>
           <label title="A = primary observing networks; B = secondary; C = other networks">Station priority<select id="filter-tier"><option value="ALL">All</option><option value="A">Primary (A)</option><option value="B">Secondary (B)</option><option value="C">Other (C)</option></select></label>
           <label>Mechanism<select id="filter-by"><option value="ALL">All</option><option value="TEMP">Temperature</option><option value="HEAT_INDEX">Heat index</option><option value="WINDCHILL">Wind chill</option><option value="RFW">RH + wind</option></select></label>
           <label>State<select id="filter-state"><option value="ALL">All</option><option value="LA">LA</option><option value="MS">MS</option></select></label>
           <label class="filter-check"><input type="checkbox" id="show-no-data"> Show no-data stations</label>
+          <label class="filter-check"><input type="checkbox" id="show-met-only"> Met only</label>
         </div>
       </div>
       <div class="panel"><div class="panel-title">Warned areas <span id="area-count">—</span></div><div class="panel-body"><div id="area-list"></div></div></div>
@@ -142,9 +143,8 @@
     div.innerHTML='<div class="map-legend-title">Warned area threshold</div>'+
       '<div class="map-legend-row"><span class="map-legend-swatch" style="background:rgba(22,163,74,.24);border-color:#16a34a"></span>Met</div>'+
       '<div class="map-legend-row"><span class="map-legend-swatch" style="background:rgba(220,38,38,.24);border-color:#dc2626"></span>Not met</div>'+
-      '<div class="map-legend-row"><span class="map-legend-swatch" style="background:rgba(245,158,11,.24);border-color:#f59e0b"></span>Indeterminate</div>'+
-      '<div class="map-legend-row"><span class="map-legend-swatch" style="background:rgba(148,163,184,.24);border-color:#94a3b8"></span>No usable data</div>'+
-      '<div class="map-legend-note">Green/red reflect the final threshold result for each warned area. Station dots use the same status colors.</div>';
+      '<div class="map-legend-row"><span class="map-legend-swatch" style="background:rgba(176,166,150,.24);border-color:#b0a696"></span>No verdict — couldn\'t judge / no data</div>'+
+      '<div class="map-legend-note">Green/red reflect the final threshold result for each warned area. Station dots use the same status colors. The Met only filter dims areas that did not verify.</div>';
     L.DomEvent.disableClickPropagation(div);
     return div;
   };
@@ -159,7 +159,9 @@
   const eventSelect=document.getElementById('event-select');
   const filters=['filter-status','filter-tier','filter-by','filter-state'].map(id=>document.getElementById(id));
   filters.forEach(x=>x.addEventListener('change',()=>renderStations()));
+  document.getElementById('filter-status').addEventListener('change',()=>renderWarnedAreas());
   document.getElementById('show-no-data').addEventListener('change',()=>renderStations());
+  document.getElementById('show-met-only').addEventListener('change',()=>{renderStations();renderWarnedAreas();});
   eventSelect.addEventListener('change',()=>renderEvent(eventSelect.value));
   document.getElementById('time-slider').addEventListener('input',e=>renderTimelineIndex(Number(e.target.value)));
   map.on('zoomend',updateStationLabels);
@@ -213,9 +215,9 @@
     const e=currentEvent,s=e.summary||{},ac=s.areaCounts||{},sc=s.stationCounts||{};
     document.getElementById('page-title').textContent=e.productLabel||'Multi-Hazard Verification';
     document.getElementById('sum-areas').textContent=`${ac.MET||0}/${s.totalAreas||0}`;
-    document.getElementById('sum-areas-sub').textContent=`${ac.NOT_MET||0} not met • ${ac.INDETERMINATE||0} indeterminate • ${ac.NO_DATA||0} no data`;
+    document.getElementById('sum-areas-sub').textContent=`${ac.NOT_MET||0} not met • ${ac.INDETERMINATE||0} couldn't judge • ${ac.NO_DATA||0} no data`;
     document.getElementById('sum-stations').textContent=`${sc.MET||0}/${s.totalStations||0}`;
-    document.getElementById('sum-stations-sub').textContent=`${sc.NOT_MET||0} not met • ${sc.INDETERMINATE||0} indeterminate`;
+    document.getElementById('sum-stations-sub').textContent=`${sc.NOT_MET||0} not met • ${sc.INDETERMINATE||0} couldn't judge`;
     let label='Event extreme',value='—',sub='—';
     if(e.hazard==='EH'){label='Maximum heat';value=nfmt(s.maxHeatIndex,0,'°F');sub=`HI at ${s.maxHeatIndexStation||'—'} • max T ${nfmt(s.maxTemp,0,'°F')}`}
     else if(e.hazard==='EC'){label='Minimum cold';value=nfmt(s.minWindChill,0,'°F');sub=`Wind chill at ${s.minWindChillStation||'—'} • min T ${nfmt(s.minTemp,0,'°F')}`}
@@ -226,7 +228,7 @@
     document.getElementById('sum-confidence-sub').textContent=`${high} high-confidence areas • ${med} medium`;
     const fallback=/fallback|unresolved/i.test((e.footprintSource||'')+' '+(e.areaTimingMode||''));
     const partial=e.dataComplete===false;
-    document.getElementById('methodology').innerHTML=`<b>Footprint:</b> ${esc(e.footprintSource||'—')}<br><b>Timing:</b> ${esc(e.areaTimingMode||'—')}<br><b>Area status:</b> one station meeting criteria establishes MET; confidence is reported separately; inadequate coverage becomes INDETERMINATE rather than a false non-verification.${e.hazard==='RFW'?'<br><b>RFW:</b> status is meteorological criteria only; fuels/KBDI and land-manager coordination are not inferred.':''}`;
+    document.getElementById('methodology').innerHTML=`<b>Footprint:</b> ${esc(e.footprintSource||'—')}<br><b>Timing:</b> ${esc(e.areaTimingMode||'—')}<br><b>Area status:</b> one station meeting criteria establishes MET; confidence is reported separately; inadequate coverage becomes "couldn't judge" rather than a false non-verification.${e.hazard==='RFW'?'<br><b>RFW:</b> status is meteorological criteria only; fuels/KBDI and land-manager coordination are not inferred.':''}`;
     if(partial)toast('This event has a partial observation run. Check the event data and GitHub run log before using it operationally.'); else if(fallback)toast('This event used a documented IEM footprint/timing fallback. Check the event metadata before treating area timing as exact.');
   }
 
@@ -239,24 +241,38 @@
       const v=verifyMap[a.ugc]||{VERIFY_STATUS:'NO_DATA',AREA_LABEL:a.ugc,CONFIDENCE:'LOW'};
       const feature={type:'Feature',properties:{ugc:a.ugc},geometry:a.geometry};
       const layer=L.geoJSON(feature,{pane:'warningPane',style:()=>areaStyle(v.VERIFY_STATUS)}).addTo(warningLayer);
+      if(polygonDimmed(v.VERIFY_STATUS))layer.eachLayer(l=>l.setStyle({fillOpacity:.03,opacity:.25}));
       layer.bindPopup(buildAreaPopup(v,a));
       layer.on('click',()=>openAreaDetails(a.ugc));
       activeAreaLayers[a.ugc]=layer;
     });
   }
 
+  function statusFilterState(){
+    const metOnly=document.getElementById('show-met-only').checked;
+    const status=document.getElementById('filter-status').value;
+    return {metOnly,status};
+  }
+
+  function polygonDimmed(verifyStatus){
+    const s=String(verifyStatus||'NO_DATA');const {metOnly,status}=statusFilterState();
+    if(metOnly)return s!=='MET';
+    return status!=='ALL'&&s!==status;
+  }
+
   function areaStyle(status){
     const s=String(status||'NO_DATA');
-    const colors={MET:'#16a34a',NOT_MET:'#dc2626',INDETERMINATE:'#f59e0b',NO_DATA:'#94a3b8'};
+    const colors={MET:'#16a34a',NOT_MET:'#dc2626',INDETERMINATE:'#b0a696',NO_DATA:'#94a3b8'};
     return {color:colors[s]||colors.NO_DATA,weight:2.2,opacity:.95,fillColor:colors[s]||colors.NO_DATA,fillOpacity:.24};
   }
 
   function renderStations(){
     stationLayer.clearLayers();markerRegistry={};
-    const status=document.getElementById('filter-status').value,tier=document.getElementById('filter-tier').value,by=document.getElementById('filter-by').value,state=document.getElementById('filter-state').value,showNoData=document.getElementById('show-no-data').checked;
+    const status=document.getElementById('filter-status').value,tier=document.getElementById('filter-tier').value,by=document.getElementById('filter-by').value,state=document.getElementById('filter-state').value,showNoData=document.getElementById('show-no-data').checked,metOnly=document.getElementById('show-met-only').checked;
     let visible=0;
     currentRows.forEach(row=>{
       const rowStatus=String(row.VERIFY_STATUS||'NO_DATA');
+      if(metOnly&&rowStatus!=='MET')return;
       if(rowStatus==='NO_DATA'&&!showNoData&&status!=='NO_DATA')return;
       if(status!=='ALL'&&rowStatus!==status)return;
       if(tier!=='ALL'&&String(row.NETWORK_TIER)!==tier)return;
@@ -266,14 +282,14 @@
       const m=L.circleMarker([lat,lon],{pane:'stationPane',...stationStyle(row)}).addTo(stationLayer);
       m.bindPopup(buildStationPopup(row));markerRegistry[String(row.STID)]={marker:m,row};visible++;
     });
-    document.getElementById('visible-station-count').textContent=`${visible} visible`;
+    document.getElementById('visible-station-count').textContent=`${visible} visible${metOnly?' (met only)':''}`;
     updateStationLabels();
     if(timelineMode&&timelineBuckets.length)renderTimelineIndex(Number(document.getElementById('time-slider').value));
   }
 
   function stationStyle(row){
     const s=String(row.VERIFY_STATUS||'NO_DATA'),tier=String(row.NETWORK_TIER||'C');
-    const colors={MET:'#16a34a',NOT_MET:'#dc2626',INDETERMINATE:'#f59e0b',NO_DATA:'#94a3b8'};
+    const colors={MET:'#16a34a',NOT_MET:'#dc2626',INDETERMINATE:'#b0a696',NO_DATA:'#94a3b8'};
     return {radius:tier==='A'?8:tier==='B'?7:6,color:'#111827',weight:tier==='A'?2:1,fillColor:colors[s]||colors.NO_DATA,fillOpacity:s==='NO_DATA'?.25:.88,dashArray:s==='INDETERMINATE'?'3 2':null};
   }
 
@@ -320,7 +336,7 @@
       rows=`<tr><td>Max temp</td><td>${nfmt(r.MAX_TEMP_F,1,' °F')} @ ${fmtTime(r.MAX_TEMP_TIME_UTC)}</td></tr><tr><td>Max heat index</td><td>${hi==null?'—':hi.toFixed(1)+' °F'}${hi==null?'':' @ '+hiTime}</td></tr><tr><td>HI inputs</td><td>${hi==null?'—':`T ${nfmt(r.HI_TEMP_F,1,' °F')} • RH ${nfmt(r.HI_RH_PCT,1,'%')} • Td ${nfmt(r.HI_DEWPOINT_F,1,' °F')}`}</td></tr><tr><td>HI duration</td><td>${durationText(r.HEAT_INDEX_CRITERIA_MAX_CONTINUOUS_MIN)} max continuous</td></tr>`;
     } else if(currentEvent.hazard==='EC')rows=`<tr><td>Min temp</td><td>${nfmt(r.MIN_TEMP_F,1,' °F')} @ ${fmtTime(r.MIN_TEMP_TIME_UTC)}</td></tr><tr><td>Min wind chill</td><td>${nfmt(r.MIN_WINDCHILL_F,1,' °F')} @ ${fmtTime(r.MIN_WINDCHILL_TIME_UTC)}</td></tr><tr><td>WC duration</td><td>${durationText(r.WINDCHILL_CRITERIA_MAX_CONTINUOUS_MIN)} max continuous</td></tr>`;
     else rows=`<tr><td>Min RH</td><td>${nfmt(r.MIN_RH_PCT,1,'%')} @ ${fmtTime(r.MIN_RH_TIME_UTC)}</td></tr><tr><td>Max sustained wind</td><td>${nfmt(r.MAX_WIND_MPH,1,' mph')} @ ${fmtTime(r.MAX_WIND_TIME_UTC)}</td></tr><tr><td>Max gust</td><td>${nfmt(r.MAX_GUST_MPH,1,' mph')} @ ${fmtTime(r.MAX_GUST_TIME_UTC)}</td></tr><tr><td>First simultaneous met</td><td>${fmtTime(r.RFW_VERIFY_TIME_UTC)}</td></tr><tr><td>RFW duration</td><td>${durationText(r.RFW_CRITERIA_MAX_CONTINUOUS_MIN)} max continuous</td></tr>`;
-    return `<div style="min-width:320px"><div class="popup-title">${esc(r.NAME)} (${esc(r.STID)})</div><table class="popup-table"><tr><td>Area</td><td>${esc(r.COUNTY||'—')} • ${esc(r.NWSZONE||'—')}</td></tr><tr><td>Network</td><td>${esc(r.NETWORK_NAME||'—')} • Tier ${esc(r.NETWORK_TIER||'—')}</td></tr><tr><td>Verified by</td><td>${esc(r.EXCEEDED_BY||'—')}</td></tr>${rows}</table></div>`;
+    return `<div style="min-width:320px"><div class="popup-title">${esc(r.NAME)} (${esc(r.STID)})</div><table class="popup-table"><tr><td>Area</td><td>${esc(r.COUNTY||'—')} • ${esc(r.NWSZONE||'—')}</td></tr><tr><td>Network</td><td>${esc(r.NETWORK_NAME||'—')} • Tier ${esc(r.NETWORK_TIER||'—')}</td></tr><tr><td>Verified by</td><td>${esc(r.EXCEEDED_BY||'—')}</td></tr>${r.NOTES?`<tr><td>Status note</td><td>${esc(r.NOTES)}</td></tr>`:''}${rows}</table></div>`;
   }
 
   function fitEventBounds(){
@@ -359,7 +375,7 @@
   function highlightActiveAreasAtTime(ms){
     const verify={};currentAreaVerification.forEach(v=>verify[v.UGC]=v);
     const areas=(payload.areas&&payload.areas[currentEvent.eventKey])||[];const active={};areas.forEach(a=>{const s=parseUtc(a.startUtc),e=parseUtc(a.endUtc);if(s&&e&&ms>=s.getTime()&&ms<=e.getTime())active[a.ugc]=true});
-    Object.entries(activeAreaLayers).forEach(([ugc,layer])=>{layer.eachLayer(l=>l.setStyle({...areaStyle((verify[ugc]||{}).VERIFY_STATUS),fillOpacity:active[ugc]?.24:.03,opacity:active[ugc]?1:.25}))})
+    Object.entries(activeAreaLayers).forEach(([ugc,layer])=>{const st=(verify[ugc]||{}).VERIFY_STATUS;const dim=polygonDimmed(st);layer.eachLayer(l=>l.setStyle({...areaStyle(st),fillOpacity:dim?.03:(active[ugc]?.24:.03),opacity:dim?.25:(active[ugc]?1:.25)}))})
   }
 
   function renderCriterionRows(){
@@ -444,10 +460,10 @@
   }
 
   function openAnalytics(){
-    const rows=(payload.analytics||[]);let html='<p style="font-size:11px;color:#64748b">Available imported and computed history. Incomplete events are shown explicitly. Area counts distinguish actual observational non-verification from indeterminate/no-data cases.</p>';
-    html+='<table class="analytics-table"><thead><tr><th>Year</th><th>Hazard</th><th>Events</th><th>Areas</th><th>Met</th><th>Not met</th><th>Indeterminate</th><th>No data</th><th>Met %*</th><th>Incomplete events</th></tr></thead><tbody>';
+    const rows=(payload.analytics||[]);let html='<p style="font-size:11px;color:#64748b">Available imported and computed history. Incomplete events are shown explicitly. Area counts distinguish actual observational non-verification from couldn\'t-judge/no-data cases.</p>';
+    html+='<table class="analytics-table"><thead><tr><th>Year</th><th>Hazard</th><th>Events</th><th>Areas</th><th>Met</th><th>Not met</th><th>Couldn\'t judge</th><th>No data</th><th>Met %*</th><th>Incomplete events</th></tr></thead><tbody>';
     rows.forEach(r=>{const denom=(r.met||0)+(r.notMet||0),pct=denom?100*(r.met||0)/denom:null;html+=`<tr><td>${r.year}</td><td>${esc(r.hazard)}</td><td>${r.events}</td><td>${r.areas}</td><td>${r.met}</td><td>${r.notMet}</td><td>${r.indeterminate}</td><td>${r.noData}</td><td>${pct==null?'—':pct.toFixed(0)+'%'}</td><td>${r.incompleteEvents||0}</td></tr>`});
-    html+='</tbody></table><div style="font-size:9px;color:#64748b;margin-top:6px">*Met % excludes indeterminate and no-data areas instead of pretending missing observations are failures.</div>';
+    html+='</tbody></table><div style="font-size:9px;color:#64748b;margin-top:6px">*Met % excludes couldn\'t-judge and no-data areas instead of pretending missing observations are failures.</div>';
     document.getElementById('analytics-body').innerHTML=html;document.getElementById('analytics-modal').classList.add('active');
   }
 
@@ -457,7 +473,8 @@
   function fmtTime(v){const d=parseUtc(v);return d?new Intl.DateTimeFormat('en-US',{month:'numeric',day:'numeric',hour:'numeric',minute:'2-digit',timeZone:'America/Chicago',timeZoneName:'short'}).format(d):'—'}
   function formatRange(a,b){return `${fmtTime(a)} – ${fmtTime(b)}`}
   function formatEventLabel(e){return `${e.year} • ${e.hazard} #${e.eventId} • ${e.productLabel} • ${fmtTime(e.issueUtc)}`}
-  function prettyStatus(s){return String(s||'NO_DATA').replace('_',' ').toLowerCase().replace(/\b\w/g,c=>c.toUpperCase())}
+  const STATUS_LABELS={MET:'Met',NOT_MET:'Not met',INDETERMINATE:"Couldn't judge",NO_DATA:'No data'};
+  function prettyStatus(s){return STATUS_LABELS[String(s||'NO_DATA')]||STATUS_LABELS.NO_DATA}
   function statusRank(s){return({MET:0,NOT_MET:1,INDETERMINATE:2,NO_DATA:3})[String(s)]??4}
   function validNum(v){if(v===null||v===undefined||v==='')return null;const n=Number(v);return Number.isFinite(n)?n:null}
   function validHeatIndex(v){const n=validNum(v);return n!=null&&n>0&&n<=128?n:null}
