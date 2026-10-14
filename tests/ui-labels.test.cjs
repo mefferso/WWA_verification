@@ -37,3 +37,11 @@ test('met-only toggle and status filter controls exist', () => {
   assert.ok(html.includes('>Status<select id="filter-status"'), 'status filter label missing or not renamed');
   assert.ok(html.includes('polygonDimmed'), 'polygon dimming helper missing');
 });
+
+test('met-only mode collapses non-met polygons to not-met display', () => {
+  assert.ok(html.includes('function displayStatus(verifyStatus)'), 'displayStatus helper missing');
+  assert.ok(
+    html.includes("if(statusFilterState().metOnly&&s!=='MET')return 'NOT_MET'"),
+    'met-only display collapse missing'
+  );
+});
