@@ -47,6 +47,8 @@ Coverage is the sum of acceptable adjacent **hazard-usable** observation interva
 - `NOT_MET`: sufficient aggregate coverage, required hazard metrics present, no fetch-error flag, and no criterion passed.
 - `INDETERMINATE`: missing rules, missing required metrics, inadequate coverage, or incomplete fetch without a positive detection.
 
+The dashboard renders `INDETERMINATE` as "Couldn't judge", styled as a quiet non-verdict (muted gray, dashed outline) rather than a third verdict color. The enum and its meaning here are unchanged.
+
 Tier A defaults to MNET 1 (ASOS/AWOS) and, for RFW, MNET 2 (RAWS). RAWS is B for other hazards. Explicit Tier A IDs override defaults; Tier B IDs apply after built-in classification; other networks are C. These are network proxies, not station-specific siting validation.
 
 Station confidence is LOW for NO_DATA, incomplete fetches, or QC removal other than `on`. Otherwise Tier A plus ≥70% coverage is HIGH; A/B plus ≥40% coverage is MEDIUM; remaining cases LOW. **The export has QC removal `off`; this remains unchanged.** QC flags are requested but not interpreted/stored individually. Switching QC to `on` changes the observation policy and requires a new ingestion run; publication cannot retroactively apply provider QC. Samples keep their ingestion policy.
