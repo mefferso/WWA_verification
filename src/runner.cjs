@@ -2,7 +2,7 @@
 const crypto=require('node:crypto'),path=require('node:path'),zlib=require('node:zlib');
 const core=require('./core.cjs'),{EventStore,atomicWrite}=require('./store.cjs'),{loadConfig}=require('./config.cjs'),{groupEvents,footprintAreas}=require('./providers.cjs');
 const {hazardUsable}=require('./recalculate.cjs');
-const HASH_VERSION=6;
+const HASH_VERSION=7;
 class BudgetExceeded extends Error {}
 function fingerprint(event,areas,cfg,maps,metadata){
  return crypto.createHash('sha256').update(JSON.stringify({version:HASH_VERSION,event:[event.issueUtc,event.expireUtc,event.phenomena],
@@ -26,13 +26,14 @@ async function computeObservations(client,event,areas,metadata,cfg,maps,deadline
    NETWORK_NAME:core.networkName_(st.MNET_ID),NETWORK_TIER:core.classifyStationTier_(st.MNET_ID,event.hazard,cfg)};
   selected.set(stid,{meta,agg:core.newStationAggregate_({...event,issue:new Date(event.issueUtc),expire:new Date(event.expireUtc)},meta,cfg),seen:new Set(),hazardTimes:[]});
  }
- const ids=[...selected.keys()],samples=[],errors=[];
+ const ids=[...selected.keys()],samples=[],contextSamples=[],errors=[];
+ const bufferMs=(cfg._contextBufferHours||0)*3600000;
  // Bound request volume and checkpoint at event granularity. 60 IDs × 24h is
  // below Synoptic's documented station-hour cap; native samples are retained.
  for(let offset=0;offset<ids.length;offset+=60){
   const chunk=ids.slice(offset,offset+60);
-  const endMs=new Date(event.expireUtc).getTime();
-  for(let from=new Date(event.issueUtc).getTime();from<endMs;from+=86400000){
+  const endMs=new Date(event.expireUtc).getTime()+bufferMs;
+  for(let from=new Date(event.issueUtc).getTime()-bufferMs;from<endMs;from+=86400000){
    if(Date.now()>=deadline)throw new BudgetExceeded('Soft runtime budget reached; current event remains resumable.');
    let stations;try{stations=await client.timeseries(chunk,new Date(from),new Date(Math.min(from+86400000,endMs)),cfg);}catch(e){
     errors.push(String(e.message));for(const id of chunk)selected.get(id).agg._fetchError=true;continue;
@@ -43,13 +44,18 @@ async function computeObservations(client,event,areas,metadata,cfg,maps,deadline
     const variable=prefix=>obs[core.findObsKey_(obs,prefix)]||[];
     const temps=variable('air_temp'),winds=variable('wind_speed'),gusts=variable('wind_gust'),rhs=variable('relative_humidity'),dews=variable('dew_point_temperature');
     for(let i=0;i<times.length;i++){
-     const when=new Date(times[i]);if(!Number.isFinite(when.getTime())||seen.has(when.getTime())||!core.isTimeActiveForStation_(meta.windows,when))continue;
+     const when=new Date(times[i]);if(!Number.isFinite(when.getTime())||seen.has(when.getTime()))continue;
      const t=core.validRange_(core.toFinite_(temps[i]),-80,140),wind=core.validRange_(core.toFinite_(winds[i]),0,200),gust=core.validRange_(core.toFinite_(gusts[i]),0,250),rh=core.validRange_(core.toFinite_(rhs[i]),0,100);
      let dew=core.validRange_(core.toFinite_(dews[i]),-120,120);if(dew===null&&t!==null&&rh!==null&&rh>0)dew=core.computeDewpointF_(t,rh);
      let wc=core.computeWindChillF_(t,wind),hi=core.computeHeatIndexF_(t,rh);if(wc!==null)wc=core.round_(wc,1);if(hi!==null)hi=core.round_(hi,1);
      if([t,wind,gust,rh,dew,hi,wc].every(v=>v===null))continue;seen.add(when.getTime());
      const flags=core.evaluateSampleCriteria_(event.hazard,meta.rules,t,wc,hi,rh,wind,gust,cfg);
-     const whenUtc=when.toISOString();core.updateStationAggregate_(agg,whenUtc,when.getTime(),t,wc,hi,rh,dew,wind,gust,flags,cfg);
+     const whenUtc=when.toISOString();
+     if(!core.isTimeActiveForStation_(meta.windows,when)){
+      contextSamples.push([event.eventKey,meta.areaUgc,meta.STID,whenUtc,t,rh,dew,wind,gust,hi,wc,flags.tempMet?'TRUE':'FALSE',flags.wcMet?'TRUE':'FALSE',flags.hiMet?'TRUE':'FALSE',flags.rfwMet?'TRUE':'FALSE']);
+      continue;
+     }
+     core.updateStationAggregate_(agg,whenUtc,when.getTime(),t,wc,hi,rh,dew,wind,gust,flags,cfg);
      if(hazardUsable(event.hazard,meta.rules,t,wind,gust,rh,hi,cfg))hazardTimes.push(when.getTime());
      samples.push([event.eventKey,meta.areaUgc,meta.STID,whenUtc,t,rh,dew,wind,gust,hi,wc,flags.tempMet?'TRUE':'FALSE',flags.wcMet?'TRUE':'FALSE',flags.hiMet?'TRUE':'FALSE',flags.rfwMet?'TRUE':'FALSE']);
     }
@@ -62,7 +68,8 @@ async function computeObservations(client,event,areas,metadata,cfg,maps,deadline
   summaries.push(core.rowToObject_(core.EVENT_OBS_HEADERS,core.aggregateToRow_(agg)));
  }
  samples.sort((a,b)=>a[3].localeCompare(b[3])||a[2].localeCompare(b[2]));
- return {summaries,samples,errors};
+ contextSamples.sort((a,b)=>a[3].localeCompare(b[3])||a[2].localeCompare(b[2]));
+ return {summaries,samples,contextSamples,errors};
 }
 const identity=e=>[e.year,e.wfo,e.hazard,e.phenomena,String(e.eventId)].join('|');
 async function runRange({root=path.resolve(__dirname,'..'),client,start,end,force=false,limit=0,budgetMs=45*60000,onProgress=()=>{}}){
@@ -87,7 +94,7 @@ async function runRange({root=path.resolve(__dirname,'..'),client,start,end,forc
    const persisted={eventKey:event.eventKey,eventId:event.eventId,year:event.year,wfo:event.wfo,hazard:event.hazard,phenomena:event.phenomena,significance:event.significance,productLabel:event.productLabel,
     issueUtc:event.issueUtc,expireUtc:event.expireUtc,warnedUgcs:event.warnedUgcs.join(','),footprintSource:'IEM VTEC event footprint',
     areaTimingMode:rowTiming?'UGC-specific event-row timing':'event-wide timing fallback',dataComplete:computed.summaries.length>0,runNote:computed.summaries.length?'Fresh GitHub Actions observation calculation.':'No matching station/rule summaries; observational adequacy unresolved.',imported:false};
-   store.save({schemaVersion:1,event:persisted,areas,summaries:computed.summaries,sampleHeaders:core.SAMPLE_HEADERS,samples:computed.samples,cacheFingerprint:signature,
+   store.save({schemaVersion:1,event:persisted,areas,summaries:computed.summaries,sampleHeaders:core.SAMPLE_HEADERS,samples:computed.samples,contextSamples:computed.contextSamples,cacheFingerprint:signature,
     provenance:{computedUtc:new Date().toISOString(),algorithmVersion:HASH_VERSION,coverageBasis:'hazard-variable availability',providerCompletenessValidated:true}});
    report.computed++;onProgress('Computed '+event.eventKey+' ('+computed.summaries.length+' stations, '+computed.samples.length+' samples)');
   }catch(e){if(e instanceof BudgetExceeded){report.deferred+=events.length-eventIndex;report.budgetExhausted=true;onProgress(e.message);break;}report.failed.push({eventKey:event.eventKey,error:String(e.message)});onProgress('Failed '+event.eventKey+': '+String(e.message));}
