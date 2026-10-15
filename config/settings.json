@@ -7,6 +7,7 @@
   "rfwWindBasis": "sustained",
   "durationMaxGapMinutes": 30.0,
   "minimumCoveragePct": 50.0,
+  "contextBufferHours": 6,
   "tierAMnetIds": [],
   "tierBMnetIds": []
 }
