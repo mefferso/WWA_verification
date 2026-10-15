@@ -49,6 +49,17 @@
     #timeline-main{min-width:0}.timeline-controls{display:flex;gap:8px;align-items:center;margin-bottom:4px}.timeline-controls button{font-size:10px;border:1px solid var(--border);background:#f8fafc;border-radius:5px;padding:4px 7px;cursor:pointer}.timeline-controls button.active{background:#1d4ed8;color:#fff;border-color:#1d4ed8}
     #time-slider{width:100%;margin:3px 0}.criterion-row{display:grid;grid-template-columns:90px minmax(0,1fr) 80px;align-items:center;gap:7px;margin:2px 0;font-size:9px}.criterion-label{font-weight:750;color:#475569}.criterion-strip{height:8px;display:flex;gap:1px;background:#e2e8f0;border-radius:2px;overflow:hidden}.criterion-seg{flex:1;background:#e2e8f0}.criterion-seg.on{background:#2563eb}.criterion-count{text-align:right;color:var(--muted)}
 
+    .hourly-intro{font-size:12px;color:#475569;line-height:1.5;margin-bottom:12px}
+    .hourly-legend{display:flex;gap:18px;font-size:12px;margin-bottom:10px;flex-wrap:wrap}
+    .hourly-swatch{display:inline-block;width:11px;height:11px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+    .hourly-plot{display:grid;gap:3px;max-height:55vh;overflow:auto}
+    .hourly-row{display:grid;grid-template-columns:112px minmax(0,1fr) 80px;gap:10px;align-items:center;border:1px solid transparent;border-radius:5px;padding:5px 7px;background:#f8fafc;font-size:12px;text-align:left;cursor:pointer}
+    .hourly-row:hover,.hourly-row:focus-visible{border-color:#2563eb;background:#eff6ff}
+    .hourly-bars{display:grid;gap:3px}
+    .hourly-track{height:10px;background:#e2e8f0;border-radius:3px;overflow:hidden}
+    .hourly-fill{height:100%;min-width:0}
+    .hourly-count{color:#475569;text-align:right;font-variant-numeric:tabular-nums}
+    @media(max-width:540px){.hourly-row{grid-template-columns:78px minmax(0,1fr) 65px;gap:5px;font-size:10px}}
     #loadingOverlay{display:none;position:fixed;inset:0;background:rgba(15,23,42,.75);z-index:5000;color:#fff;align-items:center;justify-content:center;flex-direction:column;backdrop-filter:blur(3px)}#loadingOverlay.active{display:flex}.spinner{width:42px;height:42px;border:4px solid rgba(255,255,255,.25);border-top-color:#38bdf8;border-radius:50%;animation:spin .8s linear infinite;margin-bottom:12px}@keyframes spin{to{transform:rotate(360deg)}}#loadingText{font-weight:800}#loadingSubtext{font-size:12px;opacity:.8;margin-top:4px}
     #toast{display:none;position:fixed;top:158px;right:12px;z-index:3000;background:#fff;border-left:4px solid #d97706;border-radius:7px;padding:9px 12px;box-shadow:var(--shadow);font-size:11px;max-width:430px}#toast.active{display:block}
 
@@ -114,12 +125,13 @@
       <div class="timeline-kpi" id="timeline-kpi">Select timeline mode to inspect conditions through the warning.</div>
     </div>
     <div id="timeline-main">
-      <div class="timeline-controls"><button id="timeline-summary-btn" class="active" onclick="setTimelineMode(false)">Summary</button><button id="timeline-live-btn" onclick="setTimelineMode(true)">Timeline</button><span style="font-size:9px;color:#64748b">5-minute bins; station observations remain at their native times</span></div>
+      <div class="timeline-controls"><button id="timeline-summary-btn" class="active" onclick="setTimelineMode(false)">Summary</button><button id="timeline-live-btn" onclick="setTimelineMode(true)">Timeline</button><button id="hourly-btn" onclick="openHourlyCriteria()" disabled>Hourly criteria</button><span style="font-size:9px;color:#64748b">5-minute bins; station observations remain at their native times</span></div>
       <input type="range" id="time-slider" min="0" max="0" value="0" disabled>
       <div id="criterion-rows"></div>
     </div>
   </div>
 
+  <div id="hourly-modal" class="modal-overlay"><div class="modal"><div class="modal-head"><h3 id="hourly-title">Hourly criteria</h3><button onclick="closeModal('hourly-modal')">✕</button></div><div class="modal-body" id="hourly-body"></div></div></div>
   <div id="analytics-modal" class="modal-overlay"><div class="modal"><div class="modal-head"><h3>Historical verification analytics</h3><button onclick="closeModal('analytics-modal')">✕</button></div><div class="modal-body" id="analytics-body"></div></div></div>
   <div id="area-modal" class="modal-overlay"><div class="modal" style="width:min(650px,95vw)"><div class="modal-head"><h3 id="area-modal-title">Area details</h3><button onclick="closeModal('area-modal')">✕</button></div><div class="modal-body" id="area-modal-body"></div></div></div>
   <div id="results-modal" class="modal-overlay"><div class="modal report-modal"><div class="modal-head report-head"><h3>Selected Event Verification Report</h3><button onclick="closeModal('results-modal')">✕</button></div><div class="report-body" id="results-report-body"></div></div></div>
@@ -198,7 +210,7 @@
       currentRows=selected.rows||[];currentAreaVerification=selected.areaVerification||[];
       payload.areas=payload.areas||{};if(!footprintLoaded[eventKey])payload.areas[eventKey]=(selected.areas&&selected.areas[eventKey])||[];
       currentEvent={...currentEvent,...selected.events[0]};eventMap[eventKey]=currentEvent;
-      timelineMode=false;timelineData={samples:[]};timelineBuckets=[];setTimelineButtons();
+      timelineMode=false;timelineData={samples:[]};timelineBuckets=[];document.getElementById('hourly-btn').disabled=true;closeModal('hourly-modal');setTimelineButtons();
       hideLoading();updateHeader();renderWarnedAreas();renderStations();renderAreaList();loadTimeline(eventKey);fitEventBounds();loadEventFootprint(eventKey);
     }catch(err){if(token!==eventRequestToken)return;hideLoading();toast('Event load failed: '+errorMessage(err))}
   }
@@ -358,7 +370,7 @@
   async function loadTimeline(eventKey){
     document.getElementById('time-slider').disabled=true;document.getElementById('criterion-rows').innerHTML='<div style="font-size:10px;color:#64748b">Loading event samples…</div>';
     try{const data=await WwaData.getTimeline(eventKey);if(!currentEvent||currentEvent.eventKey!==eventKey)return;
-      timelineData=data;buildTimelineBuckets();renderCriterionRows();document.getElementById('time-slider').disabled=!timelineBuckets.length;
+      timelineData=data;buildTimelineBuckets();renderCriterionRows();document.getElementById('time-slider').disabled=!timelineBuckets.length;document.getElementById('hourly-btn').disabled=!timelineBuckets.length;
     }catch(err){if(!currentEvent||currentEvent.eventKey!==eventKey)return;document.getElementById('criterion-rows').innerHTML='<div style="font-size:10px;color:#b91c1c">Timeline failed: '+esc(errorMessage(err))+'</div>'}
   }
 
@@ -393,6 +405,52 @@
     defs.forEach(([field,label])=>{const counts=timelineBuckets.map(b=>Object.values(b.stations).filter(s=>String(s[field])==='TRUE').length);const row=document.createElement('div');row.className='criterion-row';row.dataset.field=field;row.innerHTML=`<div class="criterion-label">${label}</div><div class="criterion-strip">${counts.map(c=>`<span class="criterion-seg ${c?'on':''}" title="${c} station(s)"></span>`).join('')}</div><div class="criterion-count">max ${Math.max(0,...counts)} stn</div>`;box.appendChild(row)});
   }
   function updateCriterionCountsAt(idx){document.querySelectorAll('.criterion-row').forEach(row=>{const field=row.dataset.field,b=timelineBuckets[idx],count=Object.values(b.stations).filter(s=>String(s[field])==='TRUE').length;row.querySelector('.criterion-count').textContent=`${count} stn now`})}
+
+  function openHourlyCriteria(){
+    if(!currentEvent||!timelineBuckets.length)return;
+    const hazard=currentEvent.hazard;
+    const definitions=hazard==='EC'?[['TEMP_MET','Temperature','#ea580c'],['WINDCHILL_MET','Wind chill','#2563eb']]:
+      hazard==='EH'?[['TEMP_MET','Temperature','#ea580c'],['HEAT_INDEX_MET','Heat index','#2563eb']]:
+      [['RFW_MET','RH + wind','#2563eb']];
+    // Count unique reporting stations, not observations: a station contributes at most once per hour.
+    const hours=new Map();
+    timelineBuckets.forEach(bin=>{
+      const hour=Math.floor(bin.ms/3600000)*3600000;
+      if(!hours.has(hour))hours.set(hour,{observed:new Set(),criteria:definitions.map(()=>new Set())});
+      const entry=hours.get(hour);
+      Object.entries(bin.stations).forEach(([stid,sample])=>{
+        entry.observed.add(stid);
+        definitions.forEach(([field],i)=>{if(String(sample[field])==='TRUE')entry.criteria[i].add(stid)});
+      });
+    });
+    const first=Math.min(...hours.keys()),last=Math.max(...hours.keys());
+    const ordered=[];for(let ms=first;ms<=last;ms+=3600000)ordered.push([ms,hours.get(ms)||{observed:new Set(),criteria:definitions.map(()=>new Set())}]);
+    const max=Math.max(1,...ordered.flatMap(([,entry])=>entry.criteria.map(group=>group.size)));
+    const fmt=new Intl.DateTimeFormat('en-US',{timeZone:'America/Chicago',month:'short',day:'numeric',hour:'numeric',hour12:true});
+    document.getElementById('hourly-title').textContent='Hourly threshold exceedances — '+(currentEvent.productLabel||'Selected warning');
+    const body=document.getElementById('hourly-body');body.replaceChildren();
+    const intro=document.createElement('p');intro.className='hourly-intro';
+    intro.textContent='Each hour shows the number of distinct stations with at least one qualifying observation (not cumulative verification and not hours of continuous exceedance). Blank hours have no samples. Times are Central. Select an hour to inspect its first available 5-minute bin on the map.';
+    body.appendChild(intro);
+    const legend=document.createElement('div');legend.className='hourly-legend';
+    definitions.forEach(([,label,color])=>{const item=document.createElement('span'),swatch=document.createElement('span');swatch.className='hourly-swatch';swatch.style.background=color;item.append(swatch,document.createTextNode(label));legend.appendChild(item)});
+    body.appendChild(legend);
+    const plot=document.createElement('div');plot.className='hourly-plot';
+    ordered.forEach(([ms,entry])=>{
+      const row=document.createElement('button');row.type='button';row.className='hourly-row';
+      row.title=fmt.format(new Date(ms))+' — '+entry.observed.size+' reporting stations; click to view map';
+      const stamp=document.createElement('strong');stamp.textContent=fmt.format(new Date(ms));
+      const bars=document.createElement('div');bars.className='hourly-bars';
+      entry.criteria.forEach((stations,i)=>{const track=document.createElement('div');track.className='hourly-track';const fill=document.createElement('div');fill.className='hourly-fill';fill.style.background=definitions[i][2];fill.style.width=(100*stations.size/max)+'%';track.appendChild(fill);bars.appendChild(track)});
+      const counts=document.createElement('span');counts.className='hourly-count';
+      counts.textContent=entry.observed.size?entry.criteria.map(set=>set.size).join(' / ')+' stn':'No data';
+      row.append(stamp,bars,counts);
+      row.disabled=!entry.observed.size;
+      row.onclick=()=>{const idx=timelineBuckets.findIndex(bin=>bin.ms>=ms&&bin.ms<ms+3600000);if(idx<0)return;closeModal('hourly-modal');setTimelineMode(true);renderTimelineIndex(idx)};
+      plot.appendChild(row);
+    });
+    body.appendChild(plot);document.getElementById('hourly-modal').classList.add('active');
+  }
 
   function sampleMetForHazard(s,h){if(h==='EH')return String(s.HEAT_INDEX_MET)==='TRUE'||String(s.TEMP_MET)==='TRUE';if(h==='EC')return String(s.WINDCHILL_MET)==='TRUE'||String(s.TEMP_MET)==='TRUE';return String(s.RFW_MET)==='TRUE'}
   function sampleLabel(s,h){if(h==='EH'){const hi=validHeatIndex(s.HEAT_INDEX_F),t=validNum(s.TEMP_F);return hi!=null?Math.round(hi)+'° HI':t!=null?Math.round(t)+'°':''}if(h==='EC'){const wc=validNum(s.WIND_CHILL_F),t=validNum(s.TEMP_F);return wc!=null?Math.round(wc)+'° WC':t!=null?Math.round(t)+'°':''}const w=validNum(s.WIND_MPH),rh=validNum(s.RH_PCT);return w!=null&&rh!=null?`${Math.round(w)} mph / ${Math.round(rh)}%`:''}
