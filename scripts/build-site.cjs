@@ -15,7 +15,7 @@ function buildSite({root=path.resolve(__dirname,'..'),outDir=path.join(root,'dis
   const payload=eventPayload(record,cfg,maps);summaries+=record.summaries.length;samples+=record.samples.length;
   const key=record.event.eventKey,id=eventId(key);
   atomicWrite(path.join(outDir,'data/events',id+'.json.gz'),zlib.gzipSync(Buffer.from(JSON.stringify(payload)),{level:9}));
-  atomicWrite(path.join(outDir,'data/events',id+'.samples.json.gz'),zlib.gzipSync(Buffer.from(JSON.stringify({eventKey:key,headers:record.sampleHeaders,rows:recalculate(record,cfg,maps).samples})),{level:9}));
+  atomicWrite(path.join(outDir,'data/events',id+'.samples.json.gz'),zlib.gzipSync(Buffer.from(JSON.stringify({eventKey:key,headers:record.sampleHeaders,rows:recalculate(record,cfg,maps).samples,contextRows:record.contextSamples||[]})),{level:9}));
   atomicWrite(path.join(outDir,'data/events',id+'.footprint.json.gz'),zlib.gzipSync(Buffer.from(JSON.stringify({eventKey:key,areas:record.areas})),{level:9}));
  }
  return {events:records.length,summaries,samples};

@@ -6,10 +6,11 @@ function loadConfig(root=path.resolve(__dirname,'..')){
  if(!['on','off','mark'].includes(settings.qcRemove))throw Error('Invalid QC policy');
  if(!['sustained','gust'].includes(settings.rfwWindBasis))throw Error('Invalid RFW wind basis');
  if(!Number.isFinite(settings.durationMaxGapMinutes)||settings.durationMaxGapMinutes<1)throw Error('Invalid sample gap');
+ if(!Number.isInteger(settings.contextBufferHours)||settings.contextBufferHours<0||settings.contextBufferHours>24)throw Error('Invalid context buffer hours');
  if(!Number.isFinite(settings.minimumCoveragePct)||settings.minimumCoveragePct<0||settings.minimumCoveragePct>100)throw Error('Invalid coverage threshold');
  const cfg={_cwa:settings.cwa,_qcChecks:settings.qcChecks,_qcRemove:settings.qcRemove,
   _vars:core.ensureVars_(settings.vars,['air_temp','wind_speed','wind_gust','relative_humidity','dew_point_temperature']),_units:settings.units,
-  _rfwWindBasis:settings.rfwWindBasis,_durationMaxGapMinutes:settings.durationMaxGapMinutes,_minCoveragePct:settings.minimumCoveragePct,
+  _rfwWindBasis:settings.rfwWindBasis,_durationMaxGapMinutes:settings.durationMaxGapMinutes,_minCoveragePct:settings.minimumCoveragePct,_contextBufferHours:settings.contextBufferHours,
   _tierAIds:core.parseIdSet_(settings.tierAMnetIds.join(',')),_tierBIds:core.parseIdSet_(settings.tierBMnetIds.join(','))};
  const thresholdRows=JSON.parse(fs.readFileSync(path.join(root,'config/thresholds.json')));
  const zoneRows=JSON.parse(fs.readFileSync(path.join(root,'config/zone-overrides.json')));
