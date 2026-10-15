@@ -39,6 +39,7 @@ test('Revisiting an event retains its loaded warning geometry',async()=>{
  const func=html.slice(html.indexOf('  async function renderEvent('),html.indexOf('  async function loadEventFootprint('));
  const polygon={ugc:'LAZ079',geometry:{type:'Polygon',coordinates:[]}};
  const ctx={eventRequestToken:0,currentEvent:null,eventMap:{A:{eventKey:'A'},B:{eventKey:'B'}},WwaData:{getEventPayload:async key=>({rows:[],areaVerification:[],events:[{eventKey:key}],areas:{[key]:[{ugc:'LAZ079',geometry:null}]}})},payload:{areas:{A:[polygon]}},footprintLoaded:{A:true},currentRows:[],currentAreaVerification:[],timelineMode:false,timelineData:{},timelineBuckets:[]};
+ ctx.document={getElementById:()=>({disabled:false})};ctx.closeModal=()=>{};
  for(const n of ['showLoading','hideLoading','setTimelineButtons','updateHeader','renderWarnedAreas','renderStations','renderAreaList','loadTimeline','fitEventBounds','loadEventFootprint','toast'])ctx[n]=()=>{};
  vm.createContext(ctx);vm.runInContext(func,ctx);await ctx.renderEvent('A');await ctx.renderEvent('B');await ctx.renderEvent('A');assert.deepEqual(ctx.payload.areas.A,[polygon]);
 });
