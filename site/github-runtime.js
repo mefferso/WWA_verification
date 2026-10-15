@@ -19,7 +19,7 @@ window.WwaData=(()=>{
   if(pending.size>9){const oldest=pending.keys().next().value;if(oldest!==cacheKey)pending.delete(oldest);}
   return pending.get(cacheKey);
  }
- async function getTimeline(key){const data=await eventFile(key,'.samples');return {eventKey:key,samples:data.rows.map(row=>Object.fromEntries(data.headers.map((h,i)=>[h,typeof row[i]==='boolean'?(row[i]?'TRUE':'FALSE'):row[i]])))};}
+ async function getTimeline(key){const data=await eventFile(key,'.samples');return {eventKey:key,samples:[...(data.rows||[]).map(row=>Object.fromEntries(data.headers.map((h,i)=>[h,typeof row[i]==='boolean'?(row[i]?'TRUE':'FALSE'):row[i]]))),...(data.contextRows||[]).map(row=>({...Object.fromEntries(data.headers.map((h,i)=>[h,typeof row[i]==='boolean'?(row[i]?'TRUE':'FALSE'):row[i]])),_CONTEXT:true}))]};}
  async function getFootprint(key){
   const stored=await eventFile(key,'.footprint');if(stored.areas.every(a=>a.geometry))return stored;
   const index=await getIndex(),event=index.events.find(e=>e.eventKey===key);if(!event)return stored;
