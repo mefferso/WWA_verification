@@ -1,14 +1,14 @@
 {
   "schemaVersion": 1,
-  "startedUtc": "2026-11-19T19:29:54.693Z",
+  "startedUtc": "2026-11-20T19:07:56.991Z",
   "range": {
     "start": "2026-10-01T00:00:00.000Z",
     "end": "2026-12-01T00:00:00.000Z"
   },
-  "computed": 0,
-  "reused": 1,
+  "computed": 1,
+  "reused": 0,
   "failed": [],
   "deferred": 0,
   "budgetExhausted": false,
-  "finishedUtc": "2026-11-19T19:29:54.839Z"
+  "finishedUtc": "2026-11-20T19:07:59.058Z"
 }
